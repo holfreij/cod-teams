@@ -38,10 +38,6 @@ function App() {
     );
   }, [maxTeamStrengthDifference, activePlayers]);
 
-  useEffect(() => {
-    console.log(solutions);
-  }, [solutions]);
-
   return (
     <div
       style={{ padding: 20 }}
