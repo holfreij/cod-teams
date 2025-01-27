@@ -4,7 +4,7 @@ import { Card } from "@chakra-ui/react";
 
 import { CheckboxCard } from "@/components/ui/checkbox-card";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const playerStats: PlayerStats[] = [
   { strength: 3.8, handicap: 1, name: "Frank" },
@@ -19,24 +19,47 @@ const playerStats: PlayerStats[] = [
   { strength: 3.7, handicap: 1, name: "Thomas" },
 ];
 
+const getBackgroundStyle = (strengthDifference: number) => {
+  if (strengthDifference <= 0.5) {
+    return "bg-green-900"; // Nice green
+  } else if (strengthDifference >= 2) {
+    return "bg-red-900"; // Red
+  }
+
+  return "bg-yellow-700";
+};
+
 function App() {
-  const [maxTeamStrengthDifference, setMaxTeamStrengthDifference] =
-    useState<number>(1);
   const [activePlayers, setActivePlayers] = useState<string[]>(
     playerStats.map((player) => {
       return player.name;
     })
   );
-  const [solutions, setSolutions] = useState<TeamResults[]>([]);
+  const [maxTeamStrengthDifference, setMaxTeamStrengthDifference] =
+    useState<number>(1);
 
+  const [unevenTeamsPenalty, setUnevenTeamsPenalty] = useState<number>(1);
+
+  const [solutions, setSolutions] = useState<TeamResults[]>([]);
   useEffect(() => {
     setSolutions(
       createBalancedTeams(
         playerStats.filter((player) => activePlayers.includes(player.name)),
-        maxTeamStrengthDifference
+        maxTeamStrengthDifference,
+        unevenTeamsPenalty
       )
     );
-  }, [maxTeamStrengthDifference, activePlayers]);
+  }, [maxTeamStrengthDifference, activePlayers, unevenTeamsPenalty]);
+
+  const isNumberOfPlayersEven: boolean = useMemo(() => {
+    return activePlayers.length % 2 === 0;
+  }, [activePlayers.length]);
+
+  const maxImbalance: number = useMemo(() => {
+    if (isNumberOfPlayersEven && maxTeamStrengthDifference > 2)
+      setMaxTeamStrengthDifference(2);
+    return isNumberOfPlayersEven ? 2 : 3;
+  }, [isNumberOfPlayersEven, maxTeamStrengthDifference]);
 
   return (
     <div
@@ -50,20 +73,46 @@ function App() {
           ))}
         </div>
       </CheckboxGroup>
-      <div className="flex gap-4 items-center">
-        <h2>Balanced</h2>
-        <Slider
-          className="w-40"
-          min={0}
-          max={2}
-          step={0.1}
-          value={[maxTeamStrengthDifference]}
-          onValueChange={(newValues) =>
-            setMaxTeamStrengthDifference(newValues.value[0])
-          }
-        />
-        <h2>Unbalanced</h2>
-      </div>
+      <Card.Root>
+        <Card.Body className="flex items-center gap-4">
+          <p>Balans</p>
+          <div className="flex gap-4 items-center">
+            <p>Balanced</p>
+            <Slider
+              className="w-40"
+              min={0}
+              max={maxImbalance}
+              step={0.1}
+              value={[maxTeamStrengthDifference]}
+              onValueChange={(newValues) =>
+                setMaxTeamStrengthDifference(newValues.value[0])
+              }
+            />
+            <p>Unbalanced</p>
+          </div>
+        </Card.Body>
+      </Card.Root>
+      {!isNumberOfPlayersEven && (
+        <Card.Root>
+          <Card.Body className="flex items-center gap-4">
+            <p>Moeilijkheid voor kleine team</p>
+            <div className="flex gap-4 items-center">
+              <p>Moeilijker</p>
+              <Slider
+                className="w-40"
+                min={0}
+                max={2}
+                step={0.1}
+                value={[unevenTeamsPenalty]}
+                onValueChange={(newValues) =>
+                  setUnevenTeamsPenalty(newValues.value[0])
+                }
+              />
+              <p>Makkelijker</p>
+            </div>
+          </Card.Body>
+        </Card.Root>
+      )}
       {solutions.length > 0 && (
         <div className="flex flex-col items-center gap-4">
           {solutions
@@ -73,7 +122,9 @@ function App() {
             })
             .map((match, index) => (
               <Card.Root key={index}>
-                <Card.Body>
+                <Card.Body
+                  className={`${getBackgroundStyle(match.strengthDifference)}`}
+                >
                   <div className="flex gap-4">
                     <Card.Root>
                       <Card.Body>

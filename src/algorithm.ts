@@ -12,7 +12,8 @@ export type TeamResults = {
 
 export function createBalancedTeams(
   playerStats: PlayerStats[],
-  maxStrengthDifference: number
+  maxStrengthDifference: number,
+  unevenTeamsPenalty: number
 ): TeamResults[] {
   const scale = 100; // Scale factor to handle decimal precision
   const scaledPlayerStrengths = playerStats.map((item) =>
@@ -63,9 +64,13 @@ export function createBalancedTeams(
 
       // Apply penalty for the smaller team
       const adjustedSum1 =
-        teamSize1 < teamSize2 ? sum1 - Math.round(0.5 * scale) : sum1;
+        teamSize1 < teamSize2
+          ? sum1 - Math.round(unevenTeamsPenalty * scale)
+          : sum1;
       const adjustedSum2 =
-        teamSize2 < teamSize1 ? sum2 - Math.round(0.5 * scale) : sum2;
+        teamSize2 < teamSize1
+          ? sum2 - Math.round(unevenTeamsPenalty * scale)
+          : sum2;
 
       const difference = Math.abs(adjustedSum1 - adjustedSum2);
       if (difference <= maxStrengthDifference * scale) {
