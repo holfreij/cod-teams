@@ -50,7 +50,7 @@ export function createBalancedTeams(
       const sum2 = totalPlayerStrength - sum1;
       const difference = Math.abs(sum1 - sum2);
       if (difference <= strengthDifference * scale) {
-        const { team1: group1, team2: group2 } = backtrack(
+        const { team1, team2 } = backtrack(
           playerStats,
           scaledPlayerStrengths,
           dp,
@@ -58,8 +58,8 @@ export function createBalancedTeams(
           sum1
         );
         balancedTeams.push({
-          team1: group1,
-          team2: group2,
+          team1,
+          team2,
           strengthDifference: difference / scale,
         });
       }
@@ -91,5 +91,5 @@ function backtrack(
     i--;
   }
 
-  return { team1: team1, team2: team2 };
+  return { team1, team2 };
 }

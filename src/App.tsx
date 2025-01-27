@@ -6,16 +6,16 @@ import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { useEffect, useState } from "react";
 
 const playerStats: PlayerStats[] = [
-  { strength: 5, handicap: 0, name: "Kevin" },
-  { strength: 4, handicap: 0, name: "Frank" },
-  { strength: 3.8, handicap: 0, name: "Thomas" },
-  { strength: 3.7, handicap: 0, name: "Maarten" },
-  { strength: 3.0, handicap: 0, name: "Rick" },
-  { strength: 3.1, handicap: 0, name: "Rolf" },
-  { strength: 2.9, handicap: 0, name: "Joel" },
-  { strength: 2.8, handicap: 0, name: "Lennard" },
-  { strength: 2.5, handicap: 0, name: "Guido" },
-  { strength: 2.0, handicap: 0, name: "Jan-Joost" },
+  { strength: 5, handicap: 1, name: "Kevin" },
+  { strength: 4, handicap: 1, name: "Frank" },
+  { strength: 3.8, handicap: 1, name: "Thomas" },
+  { strength: 3.7, handicap: 1, name: "Maarten" },
+  { strength: 3.0, handicap: 1, name: "Rick" },
+  { strength: 3.1, handicap: 1, name: "Rolf" },
+  { strength: 2.9, handicap: 1, name: "Joel" },
+  { strength: 2.8, handicap: 1, name: "Lennard" },
+  { strength: 2.5, handicap: 1, name: "Guido" },
+  { strength: 2.0, handicap: 1, name: "Jan-Joost" },
 ];
 const maxTeamStrengthDifference = 0.5;
 
