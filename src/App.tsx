@@ -1,4 +1,4 @@
-import { Button, CheckboxGroup } from "@chakra-ui/react";
+import { CheckboxGroup } from "@chakra-ui/react";
 import { Slider } from "@/components/ui/slider";
 import { Card } from "@chakra-ui/react";
 
@@ -29,14 +29,14 @@ function App() {
   );
   const [solutions, setSolutions] = useState<TeamResults[]>([]);
 
-  const onCreateTeams = () => {
+  useEffect(() => {
     setSolutions(
       createBalancedTeams(
         playerStats.filter((player) => activePlayers.includes(player.name)),
         maxTeamStrengthDifference
       )
     );
-  };
+  }, [maxTeamStrengthDifference, activePlayers]);
 
   useEffect(() => {
     console.log(solutions);
@@ -68,7 +68,6 @@ function App() {
         />
         <h2>Unbalanced</h2>
       </div>
-      <Button onClick={onCreateTeams}>Maak teams</Button>
       {solutions.length > 0 && (
         <div className="flex flex-col items-center gap-4">
           {solutions
