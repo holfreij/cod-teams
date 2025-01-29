@@ -14,12 +14,12 @@ const playerStats: PlayerStats[] = [
   { strength: 380, name: "Frank" },
   { strength: 250, name: "Guido" },
   { strength: 200, name: "Jan-Joost" },
-  { strength: 290, name: "Joel" },
+  { strength: 300, name: "Joel" },
   { strength: 500, name: "Kevin" },
   { strength: 280, name: "Lennard" },
   { strength: 360, name: "Maarten" },
-  { strength: 300, name: "Rick" },
-  { strength: 310, name: "Rolf" },
+  { strength: 310, name: "Rick" },
+  { strength: 300, name: "Rolf" },
   { strength: 370, name: "Thomas" },
 ];
 
