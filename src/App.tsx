@@ -1,6 +1,3 @@
-import { CheckboxGroup } from "@chakra-ui/react";
-import { Slider } from "@/components/ui/slider";
-import { Card } from "@chakra-ui/react";
 import {
   AccordionItem,
   AccordionItemContent,
@@ -8,8 +5,10 @@ import {
   AccordionRoot,
 } from "@/components/ui/accordion";
 import { CheckboxCard } from "@/components/ui/checkbox-card";
-import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
+import { Slider } from "@/components/ui/slider";
+import { Card, CheckboxGroup, Heading } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
+import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 
 const playerStats: PlayerStats[] = [
   { strength: 380, name: "Frank" },
@@ -95,6 +94,7 @@ function App() {
       style={{ padding: 20 }}
       className="flex flex-col gap-4 items-center justify-center overflow-auto"
     >
+      <Heading>QMG Teams Generator</Heading>
       <CheckboxGroup onValueChange={setActivePlayers} value={activePlayers}>
         <div className="grid grid-cols-2 gap-4 overflow-auto">
           {playerStats.map((item) => (
