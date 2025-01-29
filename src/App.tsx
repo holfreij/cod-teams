@@ -12,16 +12,16 @@ import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { useEffect, useMemo, useState } from "react";
 
 const playerStats: PlayerStats[] = [
-  { strength: 3.8, handicap: 1, name: "Frank" },
-  { strength: 2.5, handicap: 1, name: "Guido" },
-  { strength: 2.0, handicap: 1, name: "Jan-Joost" },
-  { strength: 2.9, handicap: 1, name: "Joel" },
-  { strength: 5, handicap: 1, name: "Kevin" },
-  { strength: 2.8, handicap: 1, name: "Lennard" },
-  { strength: 3.6, handicap: 1, name: "Maarten" },
-  { strength: 3.0, handicap: 1, name: "Rick" },
-  { strength: 3.1, handicap: 1, name: "Rolf" },
-  { strength: 3.7, handicap: 1, name: "Thomas" },
+  { strength: 3.8, name: "Frank" },
+  { strength: 2.5, name: "Guido" },
+  { strength: 2.0, name: "Jan-Joost" },
+  { strength: 2.9, name: "Joel" },
+  { strength: 5, name: "Kevin" },
+  { strength: 2.8, name: "Lennard" },
+  { strength: 3.6, name: "Maarten" },
+  { strength: 3.0, name: "Rick" },
+  { strength: 3.1, name: "Rolf" },
+  { strength: 3.7, name: "Thomas" },
 ];
 
 const getBackgroundStyle = (strengthDifference: number) => {
@@ -52,11 +52,19 @@ function App() {
     setSolutions(
       createBalancedTeams(
         playerStats.filter((player) => activePlayers.includes(player.name)),
+        buffedPlayers,
+        nerfedPlayers,
         maxTeamStrengthDifference,
         unevenTeamsPenalty
       )
     );
-  }, [maxTeamStrengthDifference, activePlayers, unevenTeamsPenalty]);
+  }, [
+    maxTeamStrengthDifference,
+    activePlayers,
+    unevenTeamsPenalty,
+    buffedPlayers,
+    nerfedPlayers,
+  ]);
 
   const isNumberOfPlayersEven: boolean = useMemo(() => {
     return activePlayers.length % 2 === 0;

@@ -1,6 +1,5 @@
 export type PlayerStats = {
   strength: number;
-  handicap: number;
   name: string;
 };
 
@@ -34,6 +33,8 @@ function getCombinations<T>(arr: T[], size: number): T[][] {
 
 export function createBalancedTeams(
   players: PlayerStats[],
+  buffedPlayers: string[],
+  nerfedPlayers: string[],
   maxStrengthDifference: number,
   unevenTeamsPenalty: number
 ): TeamResults[] {
@@ -47,11 +48,19 @@ export function createBalancedTeams(
     const team2 = players.filter((p) => !team1.includes(p));
 
     const team1Strength = team1.reduce(
-      (sum, p) => sum + p.strength * p.handicap,
+      (sum, p) =>
+        sum +
+        p.strength +
+        (buffedPlayers.includes(p.name) ? 0.5 : 0) -
+        (nerfedPlayers.includes(p.name) ? 0.5 : 0),
       0
     );
     const team2Strength = team2.reduce(
-      (sum, p) => sum + p.strength * p.handicap,
+      (sum, p) =>
+        sum +
+        p.strength +
+        (buffedPlayers.includes(p.name) ? 0.5 : 0) -
+        (nerfedPlayers.includes(p.name) ? 0.5 : 0),
       0
     );
 
