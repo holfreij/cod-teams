@@ -95,7 +95,7 @@ function App() {
       className="flex flex-col gap-4 items-center justify-center overflow-auto"
     >
       <Heading>QMG Teams Generator</Heading>
-      <CheckboxGroup onValueChange={setActivePlayers} value={activePlayers}>
+      <CheckboxGroup className="w-96" onValueChange={setActivePlayers} value={activePlayers}>
         <div className="grid grid-cols-2 gap-4 overflow-auto">
           {playerStats.map((item) => (
             <CheckboxCard label={item.name} key={item.name} value={item.name} />
@@ -104,7 +104,7 @@ function App() {
       </CheckboxGroup>
 
       <Card.Root>
-        <Card.Body className="flex items-center gap-4 w-80">
+        <Card.Body className="flex items-center gap-4 w-96">
           <AccordionRoot multiple>
             <AccordionItem key={"buff"} value={"buff"}>
               <AccordionItemTrigger>{"On Fire 🔥"}</AccordionItemTrigger>
@@ -149,7 +149,7 @@ function App() {
         </Card.Body>
       </Card.Root>
       <Card.Root>
-        <Card.Body className="flex items-center gap-4">
+        <Card.Body className="flex items-center gap-4 w-96">
           <p>Balans</p>
           <div className="flex gap-4 items-center">
             <p>Balanced</p>
@@ -169,7 +169,7 @@ function App() {
       </Card.Root>
       {!isNumberOfPlayersEven && (
         <Card.Root>
-          <Card.Body className="flex items-center gap-4">
+          <Card.Body className="flex items-center gap-4 w-96">
             <p>Moeilijkheid voor kleine team</p>
             <div className="flex gap-4 items-center">
               <p>Moeilijker</p>
@@ -196,23 +196,23 @@ function App() {
               return 0;
             })
             .map((match, index) => (
-              <Card.Root key={index}>
+              <Card.Root key={index} className="w-96">
                 <Card.Body
                   className={`${getBackgroundStyle(match.strengthDifference)}`}
                 >
-                  <div className="flex gap-4">
-                    <Card.Root>
+                  <div className="flex justify-between gap-6">
+                    <Card.Root className="w-40">
                       <Card.Body>
-                        <ul>
+                        <ul className="flex flex-col items-center">
                           {match.team1.map((player, i) => (
                             <li key={i}>{player.name}</li>
                           ))}
                         </ul>
                       </Card.Body>
                     </Card.Root>
-                    <Card.Root>
+                    <Card.Root  className="w-40">
                       <Card.Body>
-                        <ul>
+                      <ul className="flex flex-col items-center">
                           {match.team2.map((player, i) => (
                             <li key={i}>{player.name}</li>
                           ))}
