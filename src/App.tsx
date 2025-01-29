@@ -26,9 +26,9 @@ const playerStats: PlayerStats[] = [
 
 const getBackgroundStyle = (strengthDifference: number) => {
   if (strengthDifference <= 0.5) {
-    return "bg-green-900"; // Nice green
+    return "bg-green-900";
   } else if (strengthDifference >= 2) {
-    return "bg-red-900"; // Red
+    return "bg-red-900";
   }
 
   return "bg-yellow-700";
@@ -107,7 +107,7 @@ function App() {
         <Card.Body className="flex items-center gap-4 w-80">
           <AccordionRoot multiple>
             <AccordionItem key={"buff"} value={"buff"}>
-              <AccordionItemTrigger>{"🔥"}</AccordionItemTrigger>
+              <AccordionItemTrigger>{"On Fire 🔥"}</AccordionItemTrigger>
               <AccordionItemContent>
                 <CheckboxGroup
                   onValueChange={handleBuffedPlayersChange}
@@ -127,7 +127,7 @@ function App() {
             </AccordionItem>
 
             <AccordionItem key={"nerf"} value={"nerf"}>
-              <AccordionItemTrigger>{"💩♟️⚽"}</AccordionItemTrigger>
+              <AccordionItemTrigger>{"Noob 💩♟️⚽"}</AccordionItemTrigger>
               <AccordionItemContent>
                 <CheckboxGroup
                   onValueChange={handleNerfedPlayersChange}
