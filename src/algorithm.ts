@@ -35,7 +35,6 @@ export function createBalancedTeams(
   players: PlayerStats[],
   buffedPlayers: string[],
   nerfedPlayers: string[],
-  maxStrengthDifference: number,
   unevenTeamsPenalty: number
 ): TeamResults[] {
   const updatedPlayers = players.map((player) => ({
@@ -68,7 +67,6 @@ export function createBalancedTeams(
         team2Strength
     );
 
-    if (strengthDifference < maxStrengthDifference)
       teamCombinations.push({
         team1,
         team2,
