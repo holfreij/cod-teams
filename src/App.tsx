@@ -29,7 +29,6 @@ const getBackgroundStyle = (strengthDifference: number) => {
   } else if (strengthDifference >= 200) {
     return "bg-red-900";
   }
-
   return "bg-yellow-700";
 };
 
@@ -84,7 +83,11 @@ function App() {
       style={{ padding: 20 }}
       className="flex flex-col gap-4 items-center justify-center overflow-auto"
     >
+      <Card.Root>
+      <Card.Body className="flex items-center gap-4 w-80">
       <Heading>QMG Teams Generator</Heading>
+      </Card.Body>
+      </Card.Root>
       <Card.Root>
         <Card.Body className="flex items-center gap-4 w-80">
           <CheckboxGroup onValueChange={setActivePlayers} value={activePlayers}>
