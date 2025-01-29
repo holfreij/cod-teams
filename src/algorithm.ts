@@ -38,31 +38,28 @@ export function createBalancedTeams(
   maxStrengthDifference: number,
   unevenTeamsPenalty: number
 ): TeamResults[] {
-  const totalPlayers = players.length;
+  const updatedPlayers = players.map((player) => ({
+    ...player,
+    strength:
+      player.strength +
+      (buffedPlayers.includes(player.name)
+        ? 30
+        : nerfedPlayers.includes(player.name)
+        ? -30
+        : 0),
+  }));
+
+  const totalPlayers = updatedPlayers.length;
   const halfSize = Math.floor(totalPlayers / 2);
   const teamCombinations: TeamResults[] = [];
 
-  const possibleTeam1Combinations = getCombinations(players, halfSize);
+  const possibleTeam1Combinations = getCombinations(updatedPlayers, halfSize);
 
   for (const team1 of possibleTeam1Combinations) {
-    const team2 = players.filter((p) => !team1.includes(p));
+    const team2 = updatedPlayers.filter((p) => !team1.includes(p));
 
-    const team1Strength = team1.reduce(
-      (sum, p) =>
-        sum +
-        p.strength +
-        (buffedPlayers.includes(p.name) ? 0.5 : 0) -
-        (nerfedPlayers.includes(p.name) ? 0.5 : 0),
-      0
-    );
-    const team2Strength = team2.reduce(
-      (sum, p) =>
-        sum +
-        p.strength +
-        (buffedPlayers.includes(p.name) ? 0.5 : 0) -
-        (nerfedPlayers.includes(p.name) ? 0.5 : 0),
-      0
-    );
+    const team1Strength = team1.reduce((sum, p) => sum + p.strength, 0);
+    const team2Strength = team2.reduce((sum, p) => sum + p.strength, 0);
 
     const unevenSizedTeam = team1.length < team2.length;
 
