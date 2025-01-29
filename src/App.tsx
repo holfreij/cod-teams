@@ -12,22 +12,22 @@ import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { useEffect, useMemo, useState } from "react";
 
 const playerStats: PlayerStats[] = [
-  { strength: 3.8, name: "Frank" },
-  { strength: 2.5, name: "Guido" },
-  { strength: 2.0, name: "Jan-Joost" },
-  { strength: 2.9, name: "Joel" },
-  { strength: 5, name: "Kevin" },
-  { strength: 2.8, name: "Lennard" },
-  { strength: 3.6, name: "Maarten" },
-  { strength: 3.0, name: "Rick" },
-  { strength: 3.1, name: "Rolf" },
-  { strength: 3.7, name: "Thomas" },
+  { strength: 380, name: "Frank" },
+  { strength: 250, name: "Guido" },
+  { strength: 200, name: "Jan-Joost" },
+  { strength: 290, name: "Joel" },
+  { strength: 500, name: "Kevin" },
+  { strength: 280, name: "Lennard" },
+  { strength: 360, name: "Maarten" },
+  { strength: 300, name: "Rick" },
+  { strength: 310, name: "Rolf" },
+  { strength: 370, name: "Thomas" },
 ];
 
 const getBackgroundStyle = (strengthDifference: number) => {
-  if (strengthDifference <= 0.5) {
+  if (strengthDifference <= 50) {
     return "bg-green-900";
-  } else if (strengthDifference >= 2) {
+  } else if (strengthDifference >= 200) {
     return "bg-red-900";
   }
 
@@ -43,9 +43,9 @@ function App() {
   const [buffedPlayers, setBuffedPlayers] = useState<string[]>([]);
   const [nerfedPlayers, setNerfedPlayers] = useState<string[]>([]);
   const [maxTeamStrengthDifference, setMaxTeamStrengthDifference] =
-    useState<number>(1);
+    useState<number>(100);
 
-  const [unevenTeamsPenalty, setUnevenTeamsPenalty] = useState<number>(1);
+  const [unevenTeamsPenalty, setUnevenTeamsPenalty] = useState<number>(100);
 
   const [solutions, setSolutions] = useState<TeamResults[]>([]);
   useEffect(() => {
@@ -71,9 +71,9 @@ function App() {
   }, [activePlayers.length]);
 
   const maxImbalance: number = useMemo(() => {
-    if (isNumberOfPlayersEven && maxTeamStrengthDifference > 2)
-      setMaxTeamStrengthDifference(2);
-    return isNumberOfPlayersEven ? 2 : 3;
+    if (isNumberOfPlayersEven && maxTeamStrengthDifference > 200)
+      setMaxTeamStrengthDifference(200);
+    return isNumberOfPlayersEven ? 200 : 300;
   }, [isNumberOfPlayersEven, maxTeamStrengthDifference]);
 
   const handleBuffedPlayersChange = (newBuffedPlayers: string[]) => {
@@ -157,7 +157,7 @@ function App() {
               className="w-40"
               min={0}
               max={maxImbalance}
-              step={0.1}
+              step={10}
               value={[maxTeamStrengthDifference]}
               onValueChange={(newValues) =>
                 setMaxTeamStrengthDifference(newValues.value[0])
@@ -176,8 +176,8 @@ function App() {
               <Slider
                 className="w-40"
                 min={0}
-                max={2}
-                step={0.1}
+                max={200}
+                step={10}
                 value={[unevenTeamsPenalty]}
                 onValueChange={(newValues) =>
                   setUnevenTeamsPenalty(newValues.value[0])
