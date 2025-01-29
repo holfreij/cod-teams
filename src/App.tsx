@@ -1,7 +1,12 @@
 import { CheckboxGroup } from "@chakra-ui/react";
 import { Slider } from "@/components/ui/slider";
 import { Card } from "@chakra-ui/react";
-
+import {
+  AccordionItem,
+  AccordionItemContent,
+  AccordionItemTrigger,
+  AccordionRoot,
+} from "@/components/ui/accordion";
 import { CheckboxCard } from "@/components/ui/checkbox-card";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { useEffect, useMemo, useState } from "react";
@@ -35,6 +40,8 @@ function App() {
       return player.name;
     })
   );
+  const [buffedPlayers, setBuffedPlayers] = useState<string[]>([]);
+  const [nerfedPlayers, setNerfedPlayers] = useState<string[]>([]);
   const [maxTeamStrengthDifference, setMaxTeamStrengthDifference] =
     useState<number>(1);
 
@@ -61,6 +68,20 @@ function App() {
     return isNumberOfPlayersEven ? 2 : 3;
   }, [isNumberOfPlayersEven, maxTeamStrengthDifference]);
 
+  const handleBuffedPlayersChange = (newBuffedPlayers: string[]) => {
+    setBuffedPlayers(newBuffedPlayers);
+    setNerfedPlayers((prev) =>
+      prev.filter((player) => !newBuffedPlayers.includes(player))
+    );
+  };
+
+  const handleNerfedPlayersChange = (newNerfedPlayers: string[]) => {
+    setNerfedPlayers(newNerfedPlayers);
+    setBuffedPlayers((prev) =>
+      prev.filter((player) => !newNerfedPlayers.includes(player))
+    );
+  };
+
   return (
     <div
       style={{ padding: 20 }}
@@ -73,6 +94,52 @@ function App() {
           ))}
         </div>
       </CheckboxGroup>
+
+      <Card.Root>
+        <Card.Body className="flex items-center gap-4 w-80">
+          <AccordionRoot multiple>
+            <AccordionItem key={"buff"} value={"buff"}>
+              <AccordionItemTrigger>{"🔥"}</AccordionItemTrigger>
+              <AccordionItemContent>
+                <CheckboxGroup
+                  onValueChange={handleBuffedPlayersChange}
+                  value={buffedPlayers}
+                >
+                  <div className="grid grid-cols-2 gap-4 overflow-auto">
+                    {activePlayers.map((player) => (
+                      <CheckboxCard
+                        label={player}
+                        key={player}
+                        value={player}
+                      />
+                    ))}
+                  </div>
+                </CheckboxGroup>
+              </AccordionItemContent>
+            </AccordionItem>
+
+            <AccordionItem key={"nerf"} value={"nerf"}>
+              <AccordionItemTrigger>{"💩♟️⚽"}</AccordionItemTrigger>
+              <AccordionItemContent>
+                <CheckboxGroup
+                  onValueChange={handleNerfedPlayersChange}
+                  value={nerfedPlayers}
+                >
+                  <div className="grid grid-cols-2 gap-4 overflow-auto">
+                    {activePlayers.map((player) => (
+                      <CheckboxCard
+                        label={player}
+                        key={player}
+                        value={player}
+                      />
+                    ))}
+                  </div>
+                </CheckboxGroup>
+              </AccordionItemContent>
+            </AccordionItem>
+          </AccordionRoot>
+        </Card.Body>
+      </Card.Root>
       <Card.Root>
         <Card.Body className="flex items-center gap-4">
           <p>Balans</p>
