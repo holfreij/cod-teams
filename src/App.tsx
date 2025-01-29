@@ -41,8 +41,6 @@ function App() {
   );
   const [buffedPlayers, setBuffedPlayers] = useState<string[]>([]);
   const [nerfedPlayers, setNerfedPlayers] = useState<string[]>([]);
-  const [maxTeamStrengthDifference, setMaxTeamStrengthDifference] =
-    useState<number>(100);
 
   const [unevenTeamsPenalty, setUnevenTeamsPenalty] = useState<number>(100);
 
@@ -53,12 +51,10 @@ function App() {
         playerStats.filter((player) => activePlayers.includes(player.name)),
         buffedPlayers,
         nerfedPlayers,
-        maxTeamStrengthDifference,
         unevenTeamsPenalty
       )
     );
   }, [
-    maxTeamStrengthDifference,
     activePlayers,
     unevenTeamsPenalty,
     buffedPlayers,
@@ -68,12 +64,6 @@ function App() {
   const isNumberOfPlayersEven: boolean = useMemo(() => {
     return activePlayers.length % 2 === 0;
   }, [activePlayers.length]);
-
-  const maxImbalance: number = useMemo(() => {
-    if (isNumberOfPlayersEven && maxTeamStrengthDifference > 200)
-      setMaxTeamStrengthDifference(200);
-    return isNumberOfPlayersEven ? 200 : 300;
-  }, [isNumberOfPlayersEven, maxTeamStrengthDifference]);
 
   const handleBuffedPlayersChange = (newBuffedPlayers: string[]) => {
     setBuffedPlayers(newBuffedPlayers);
@@ -95,16 +85,25 @@ function App() {
       className="flex flex-col gap-4 items-center justify-center overflow-auto"
     >
       <Heading>QMG Teams Generator</Heading>
-      <CheckboxGroup className="w-96" onValueChange={setActivePlayers} value={activePlayers}>
-        <div className="grid grid-cols-2 gap-4 overflow-auto">
-          {playerStats.map((item) => (
-            <CheckboxCard label={item.name} key={item.name} value={item.name} />
-          ))}
-        </div>
-      </CheckboxGroup>
+      <Card.Root>
+        <Card.Body className="flex items-center gap-4 w-80">
+          <CheckboxGroup onValueChange={setActivePlayers} value={activePlayers}>
+            <div className="grid grid-cols-2 gap-4 overflow-auto">
+              {playerStats.map((item) => (
+                <CheckboxCard
+                className="w-32"
+                  label={item.name}
+                  key={item.name}
+                  value={item.name}
+                />
+              ))}
+            </div>
+          </CheckboxGroup>
+        </Card.Body>
+      </Card.Root>
 
       <Card.Root>
-        <Card.Body className="flex items-center gap-4 w-96">
+        <Card.Body className="flex items-center gap-4 w-80">
           <AccordionRoot multiple>
             <AccordionItem key={"buff"} value={"buff"}>
               <AccordionItemTrigger>{"On Fire 🔥"}</AccordionItemTrigger>
@@ -148,33 +147,14 @@ function App() {
           </AccordionRoot>
         </Card.Body>
       </Card.Root>
-      <Card.Root>
-        <Card.Body className="flex items-center gap-4 w-96">
-          <p>Balans</p>
-          <div className="flex gap-4 items-center">
-            <p>Balanced</p>
-            <Slider
-              className="w-40"
-              min={0}
-              max={maxImbalance}
-              step={10}
-              value={[maxTeamStrengthDifference]}
-              onValueChange={(newValues) =>
-                setMaxTeamStrengthDifference(newValues.value[0])
-              }
-            />
-            <p>Unbalanced</p>
-          </div>
-        </Card.Body>
-      </Card.Root>
       {!isNumberOfPlayersEven && (
         <Card.Root>
-          <Card.Body className="flex items-center gap-4 w-96">
+          <Card.Body className="flex items-center gap-4 w-80">
             <p>Moeilijkheid voor kleine team</p>
             <div className="flex gap-4 items-center">
               <p>Moeilijker</p>
               <Slider
-                className="w-40"
+                className="w-26"
                 min={0}
                 max={200}
                 step={10}
@@ -194,9 +174,9 @@ function App() {
             .sort((a, b) => {
               if (a.strengthDifference <= b.strengthDifference) return -1;
               return 0;
-            })
+            }).slice(0,10)
             .map((match, index) => (
-              <Card.Root key={index} className="w-96">
+              <Card.Root key={index} className="w-80">
                 <Card.Body
                   className={`${getBackgroundStyle(match.strengthDifference)}`}
                 >
@@ -210,9 +190,9 @@ function App() {
                         </ul>
                       </Card.Body>
                     </Card.Root>
-                    <Card.Root  className="w-40">
+                    <Card.Root className="w-40">
                       <Card.Body>
-                      <ul className="flex flex-col items-center">
+                        <ul className="flex flex-col items-center">
                           {match.team2.map((player, i) => (
                             <li key={i}>{player.name}</li>
                           ))}
