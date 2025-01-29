@@ -70,7 +70,5 @@ export function createBalancedTeams(
       });
   }
 
-  console.log(teamCombinations);
-
   return teamCombinations;
 }
