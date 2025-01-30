@@ -55,6 +55,11 @@ function App() {
     );
   }, [activePlayers, unevenTeamsPenalty, buffedPlayers, nerfedPlayers]);
 
+  const onActivePlayersChange = (newActivePlayers: string[]) => {
+    if (newActivePlayers.length < 4) return;
+    setActivePlayers(newActivePlayers);
+  };
+
   const isNumberOfPlayersEven: boolean = useMemo(() => {
     return activePlayers.length % 2 === 0;
   }, [activePlayers.length]);
@@ -106,7 +111,10 @@ function App() {
       </Card.Root>
       <Card.Root>
         <Card.Body className="flex items-center gap-4 w-80">
-          <CheckboxGroup onValueChange={setActivePlayers} value={activePlayers}>
+          <CheckboxGroup
+            onValueChange={onActivePlayersChange}
+            value={activePlayers}
+          >
             <div className="grid grid-cols-2 gap-4 overflow-auto">
               {playerStats.map((item) => (
                 <CheckboxCard
