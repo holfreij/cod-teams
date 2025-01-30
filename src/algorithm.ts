@@ -53,9 +53,26 @@ export function createBalancedTeams(
   const teamCombinations: TeamResults[] = [];
 
   const possibleTeam1Combinations = getCombinations(updatedPlayers, halfSize);
+  const seenTeams = new Set<string>();
 
   for (const team1 of possibleTeam1Combinations) {
     const team2 = updatedPlayers.filter((p) => !team1.includes(p));
+
+    const team1Names = team1
+      .map((p) => p.name)
+      .sort()
+      .join("");
+    const team2Names = team2
+      .map((p) => p.name)
+      .sort()
+      .join("");
+    const teamKey =
+      team1Names < team2Names
+        ? `${team1Names}-${team2Names}`
+        : `${team2Names}-${team1Names}`;
+
+    if (seenTeams.has(teamKey)) continue;
+    seenTeams.add(teamKey);
 
     const team1Strength = team1.reduce((sum, p) => sum + p.strength, 0);
     const team2Strength = team2.reduce((sum, p) => sum + p.strength, 0);
@@ -67,11 +84,11 @@ export function createBalancedTeams(
         team2Strength
     );
 
-      teamCombinations.push({
-        team1,
-        team2,
-        strengthDifference: strengthDifference,
-      });
+    teamCombinations.push({
+      team1,
+      team2,
+      strengthDifference: strengthDifference,
+    });
   }
 
   return teamCombinations;
