@@ -73,6 +73,27 @@ function App() {
     );
   };
 
+  const strengthDifferenceIndicator = (match: TeamResults) => {
+    if (match.strengthDifference <= 50) return;
+    const team1Strength = match.team1.reduce(
+      (sum, player) => sum + player.strength,
+      0
+    );
+    const team2Strength = match.team2.reduce(
+      (sum, player) => sum + player.strength,
+      0
+    );
+    if (match.strengthDifference >= 200)
+      if (team1Strength > team2Strength) return ">>";
+      else {
+        return "<<";
+      }
+    if (team1Strength > team2Strength) return ">";
+    else {
+      return "<";
+    }
+  };
+
   return (
     <div
       style={{ padding: 20 }}
@@ -179,7 +200,7 @@ function App() {
                 <Card.Body
                   className={`${getBackgroundStyle(match.strengthDifference)}`}
                 >
-                  <div className="flex justify-between gap-6">
+                  <div className="flex justify-between gap-2">
                     <Card.Root className="w-40">
                       <Card.Body>
                         <ul className="flex flex-col items-center">
@@ -189,6 +210,9 @@ function App() {
                         </ul>
                       </Card.Body>
                     </Card.Root>
+                    <div className="flex items-center">
+                      {strengthDifferenceIndicator(match)}
+                    </div>
                     <Card.Root className="w-40">
                       <Card.Body>
                         <ul className="flex flex-col items-center">
