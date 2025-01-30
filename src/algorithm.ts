@@ -42,9 +42,9 @@ export function createBalancedTeams(
     strength:
       player.strength +
       (buffedPlayers.includes(player.name)
-        ? 30
+        ? 50
         : nerfedPlayers.includes(player.name)
-        ? -30
+        ? -50
         : 0),
   }));
 
