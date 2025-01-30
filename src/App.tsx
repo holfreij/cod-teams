@@ -11,16 +11,16 @@ import { useEffect, useMemo, useState } from "react";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 
 const playerStats: PlayerStats[] = [
-  { strength: 380, name: "Frank" },
-  { strength: 250, name: "Guido" },
-  { strength: 200, name: "Jan-Joost" },
-  { strength: 300, name: "Joel" },
+  { strength: 400, name: "Frank" },
+  { strength: 290, name: "Guido" },
+  { strength: 250, name: "Jan-Joost" },
+  { strength: 310, name: "Joel" },
   { strength: 500, name: "Kevin" },
-  { strength: 280, name: "Lennard" },
-  { strength: 360, name: "Maarten" },
-  { strength: 310, name: "Rick" },
-  { strength: 300, name: "Rolf" },
-  { strength: 370, name: "Thomas" },
+  { strength: 310, name: "Lennard" },
+  { strength: 380, name: "Maarten" },
+  { strength: 320, name: "Rick" },
+  { strength: 320, name: "Rolf" },
+  { strength: 390, name: "Thomas" },
 ];
 
 const getBackgroundStyle = (strengthDifference: number) => {
@@ -53,12 +53,7 @@ function App() {
         unevenTeamsPenalty
       )
     );
-  }, [
-    activePlayers,
-    unevenTeamsPenalty,
-    buffedPlayers,
-    nerfedPlayers,
-  ]);
+  }, [activePlayers, unevenTeamsPenalty, buffedPlayers, nerfedPlayers]);
 
   const isNumberOfPlayersEven: boolean = useMemo(() => {
     return activePlayers.length % 2 === 0;
@@ -84,9 +79,9 @@ function App() {
       className="flex flex-col gap-4 items-center justify-center overflow-auto"
     >
       <Card.Root>
-      <Card.Body className="flex items-center gap-4 w-80">
-      <Heading>QMG Teams Generator</Heading>
-      </Card.Body>
+        <Card.Body className="flex items-center gap-4 w-80">
+          <Heading>QMG Teams Generator</Heading>
+        </Card.Body>
       </Card.Root>
       <Card.Root>
         <Card.Body className="flex items-center gap-4 w-80">
@@ -94,7 +89,7 @@ function App() {
             <div className="grid grid-cols-2 gap-4 overflow-auto">
               {playerStats.map((item) => (
                 <CheckboxCard
-                className="w-32"
+                  className="w-32"
                   label={item.name}
                   key={item.name}
                   value={item.name}
@@ -177,7 +172,8 @@ function App() {
             .sort((a, b) => {
               if (a.strengthDifference <= b.strengthDifference) return -1;
               return 0;
-            }).slice(0,10)
+            })
+            .slice(0, 10)
             .map((match, index) => (
               <Card.Root key={index} className="w-80">
                 <Card.Body
