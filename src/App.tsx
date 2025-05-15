@@ -23,6 +23,84 @@ const playerStats: PlayerStats[] = [
   { strength: 390, name: "Thomas" },
 ];
 
+const maps = [
+  {
+    name: "Al-Raab Airbase",
+    url: "https://callofduty.fandom.com/wiki/Al-Raab_Airbase",
+  },
+  {
+    name: "Aniyah Palace",
+    url: "https://callofduty.fandom.com/wiki/Aniyah_Palace",
+  },
+  {
+    name: "Arklov Peak",
+    url: "https://callofduty.fandom.com/wiki/Arklov_Peak",
+  },
+  {
+    name: "Atlas Superstore",
+    url: "https://callofduty.fandom.com/wiki/Atlas_Superstore",
+  },
+  { name: "Azhir Cave", url: "https://callofduty.fandom.com/wiki/Azhir_Cave" },
+  { name: "Broadcast", url: "https://callofduty.fandom.com/wiki/Broadcast" },
+  {
+    name: "Cheshire Park",
+    url: "https://callofduty.fandom.com/wiki/Cheshire_Park",
+  },
+  { name: "Crash", url: "https://callofduty.fandom.com/wiki/Crash_(map)" },
+  {
+    name: "Euphrates Bridge",
+    url: "https://callofduty.fandom.com/wiki/Euphrates_Bridge",
+  },
+  { name: "Gun Runner", url: "https://callofduty.fandom.com/wiki/Gun_Runner" },
+  {
+    name: "Hackney Yard",
+    url: "https://callofduty.fandom.com/wiki/Hackney_Yard",
+  },
+  { name: "Hardhat", url: "https://callofduty.fandom.com/wiki/Hardhat" },
+  {
+    name: "Hovec Sawmill",
+    url: "https://callofduty.fandom.com/wiki/Hovec_Sawmill",
+  },
+  {
+    name: "Khandor Hideout",
+    url: "https://callofduty.fandom.com/wiki/Khandor_Hideout",
+  },
+  {
+    name: "Mialstor Tank Factory",
+    url: "https://callofduty.fandom.com/wiki/Mialstor_Tank_Factory",
+  },
+  {
+    name: "Petrov Oil Rig",
+    url: "https://callofduty.fandom.com/wiki/Petrov_Oil_Rig",
+  },
+  {
+    name: "Piccadilly",
+    url: "https://callofduty.fandom.com/wiki/Piccadilly_(map)",
+  },
+  { name: "Rammaza", url: "https://callofduty.fandom.com/wiki/Rammaza" },
+  {
+    name: "Scrapyard",
+    url: "https://callofduty.fandom.com/wiki/Scrapyard_(Modern_Warfare)",
+  },
+  {
+    name: "Shoot House",
+    url: "https://callofduty.fandom.com/wiki/Shoot_House",
+  },
+  {
+    name: "St. Petrograd",
+    url: "https://callofduty.fandom.com/wiki/St._Petrograd",
+  },
+  {
+    name: "Suldal Harbor",
+    url: "https://callofduty.fandom.com/wiki/Suldal_Harbor",
+  },
+  {
+    name: "Talsik Backlot",
+    url: "https://callofduty.fandom.com/wiki/Talsik_Backlot",
+  },
+  { name: "Vacant", url: "https://callofduty.fandom.com/wiki/Vacant" },
+];
+
 const getBackgroundStyle = (strengthDifference: number) => {
   if (strengthDifference <= 50) {
     return "bg-green-900";
@@ -107,6 +185,40 @@ function App() {
       <Card.Root>
         <Card.Body className="flex items-center gap-4 w-80">
           <Heading>QMG Teams Generator</Heading>
+        </Card.Body>
+      </Card.Root>
+      <Card.Root>
+        <Card.Body className="flex items-center gap-4 w-80">
+          <AccordionRoot collapsible>
+            <AccordionItem key="maps" value="maps">
+              <AccordionItemTrigger>Maps</AccordionItemTrigger>
+              <AccordionItemContent>
+                <ul className="flex flex-col gap-2">
+                  {maps.map((map) => (
+                    <li key={map.name}>
+                      <a
+                        href={map.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          color: "#60a5fa",
+                          textDecoration: "underline",
+                        }}
+                        onMouseOver={(e) =>
+                          (e.currentTarget.style.textDecoration = "underline")
+                        }
+                        onMouseOut={(e) =>
+                          (e.currentTarget.style.textDecoration = "underline")
+                        }
+                      >
+                        {map.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </AccordionItemContent>
+            </AccordionItem>
+          </AccordionRoot>
         </Card.Body>
       </Card.Root>
       <Card.Root>
