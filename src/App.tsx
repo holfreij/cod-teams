@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/accordion";
 import { CheckboxCard } from "@/components/ui/checkbox-card";
 import { Slider } from "@/components/ui/slider";
-import { Card, CheckboxGroup, Heading } from "@chakra-ui/react";
+import { Button, Card, CheckboxGroup, Heading } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 
@@ -118,6 +118,7 @@ function App() {
   );
   const [buffedPlayers, setBuffedPlayers] = useState<string[]>([]);
   const [nerfedPlayers, setNerfedPlayers] = useState<string[]>([]);
+  const [randomMap, setRandomMap] = useState<string | null>(null);
 
   const [unevenTeamsPenalty, setUnevenTeamsPenalty] = useState<number>(100);
 
@@ -189,7 +190,10 @@ function App() {
       </Card.Root>
       <Card.Root>
         <Card.Body className="flex items-center gap-4 w-80">
-          <AccordionRoot collapsible>
+          <AccordionRoot
+            className="flex flex-col gap-4 items-center"
+            collapsible
+          >
             <AccordionItem key="maps" value="maps">
               <AccordionItemTrigger>Maps</AccordionItemTrigger>
               <AccordionItemContent>
@@ -218,6 +222,20 @@ function App() {
                 </ul>
               </AccordionItemContent>
             </AccordionItem>
+            <Button
+              className="mb-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+              onClick={() => {
+                const map = maps[Math.floor(Math.random() * maps.length)];
+                setRandomMap(map.name);
+              }}
+            >
+              Pick Random Map
+            </Button>
+            {randomMap && (
+              <div className="mb-2 text-center text-lg font-semibold">
+                {randomMap}
+              </div>
+            )}
           </AccordionRoot>
         </Card.Body>
       </Card.Root>
