@@ -121,7 +121,7 @@ function App() {
   const [nerfedPlayers, setNerfedPlayers] = useState<string[]>([]);
   const [randomMap, setRandomMap] = useState<string | null>(null);
 
-  const [unevenTeamsPenalty, setUnevenTeamsPenalty] = useState<number>(100);
+  const [unevenTeamsPenalty, setUnevenTeamsPenalty] = useState<number>(0);
 
   const [solutions, setSolutions] = useState<TeamResults[]>([]);
   useEffect(() => {
