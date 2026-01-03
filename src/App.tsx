@@ -21,6 +21,7 @@ const playerStats: PlayerStats[] = [
   { strength: 320, name: "Rick" },
   { strength: 320, name: "Rolf" },
   { strength: 390, name: "Thomas" },
+  { strength: 250, name: "Arjan" },
 ];
 
 const maps = [
