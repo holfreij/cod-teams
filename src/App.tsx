@@ -313,8 +313,8 @@ function App() {
               <p>Moeilijker</p>
               <Slider
                 className="w-26"
-                min={-200}
-                max={200}
+                min={-500}
+                max={500}
                 step={10}
                 value={[unevenTeamsPenalty]}
                 onValueChange={(newValues) =>
