@@ -170,12 +170,15 @@ export const savePlayerRatings = async (ratings: { [playerName: string]: PlayerR
 export const updatePlayerRatings = async (match: MatchResult): Promise<void> => {
   const ratings = await getPlayerRatings();
 
-  // Update each player's rating
+  // Update each player's rating (ELO changes are applied directly)
   Object.entries(match.ratingChanges).forEach(([playerName, change]) => {
     if (!ratings[playerName]) {
+      // Initialize with the player's current strength from the match
+      // This captures their pre-match ELO
+      const player = [...match.team1, ...match.team2].find(p => p.name === playerName);
       ratings[playerName] = {
         name: playerName,
-        rating: 0,
+        rating: player ? player.strength : 1500, // Fallback to 1500 if not found
         wins: 0,
         losses: 0,
         draws: 0,
@@ -214,13 +217,13 @@ export const resetPlayerRatings = async (): Promise<void> => {
 };
 
 // Calculate rating change based on ELO system
-// Using a lower k-factor (16) for more gradual rating changes
+// Using k-factor of 24 for balanced responsiveness with pure ELO ratings
 export const calculateRatingChange = (
   _playerRating: number,
   teamAvgRating: number,
   opponentAvgRating: number,
   won: boolean,
-  kFactor: number = 16
+  kFactor: number = 24
 ): number => {
   const expectedScore = 1 / (1 + Math.pow(10, (opponentAvgRating - teamAvgRating) / 400));
   const actualScore = won ? 1 : 0;

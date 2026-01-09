@@ -15,18 +15,20 @@ import { Auth } from "./components/Auth";
 import { getPlayerRatings } from "./storage";
 import { useAuth } from "./auth/AuthContext";
 
+// Players now use pure ELO ratings (standard chess-style system)
+// Middle tier (Rick/Rolf) = 1500, Kevin significantly higher as best player
 const playerStats: PlayerStats[] = [
-  { strength: 400, name: "Frank" },
-  { strength: 290, name: "Guido" },
-  { strength: 250, name: "Jan-Joost" },
-  { strength: 310, name: "Joel" },
-  { strength: 500, name: "Kevin" },
-  { strength: 310, name: "Lennard" },
-  { strength: 380, name: "Maarten" },
-  { strength: 320, name: "Rick" },
-  { strength: 320, name: "Rolf" },
-  { strength: 390, name: "Thomas" },
-  { strength: 250, name: "Arjan" },
+  { strength: 1875, name: "Frank" },
+  { strength: 1359, name: "Guido" },
+  { strength: 1172, name: "Jan-Joost" },
+  { strength: 1453, name: "Joel" },
+  { strength: 2344, name: "Kevin" },
+  { strength: 1453, name: "Lennard" },
+  { strength: 1781, name: "Maarten" },
+  { strength: 1500, name: "Rick" },
+  { strength: 1500, name: "Rolf" },
+  { strength: 1828, name: "Thomas" },
+  { strength: 1172, name: "Arjan" },
 ];
 
 const maps = [
@@ -108,9 +110,10 @@ const maps = [
 ];
 
 const getBackgroundStyle = (strengthDifference: number) => {
-  if (strengthDifference <= 50) {
+  // Thresholds scaled for ELO ratings (1000-2500 range)
+  if (strengthDifference <= 235) {
     return "bg-gradient-to-r from-green-900 to-green-800 shadow-lg shadow-green-900/50";
-  } else if (strengthDifference >= 200) {
+  } else if (strengthDifference >= 940) {
     return "bg-gradient-to-r from-red-900 to-red-800 shadow-lg shadow-red-900/50";
   }
   return "bg-gradient-to-r from-yellow-700 to-yellow-600 shadow-lg shadow-yellow-700/50";
@@ -132,12 +135,13 @@ function App() {
 
   const { user } = useAuth();
 
-  // Get current player ratings and apply them to base stats
+  // Get current player ratings (pure ELO system)
+  // If player has played games, use their current rating; otherwise use initial ELO
   const getAdjustedPlayerStats = async (): Promise<PlayerStats[]> => {
     const ratings = await getPlayerRatings();
     return playerStats.map(player => ({
       ...player,
-      strength: player.strength + (ratings[player.name]?.rating || 0)
+      strength: ratings[player.name]?.rating ?? player.strength
     }));
   };
 
@@ -184,7 +188,8 @@ function App() {
   };
 
   const strengthDifferenceIndicator = (match: TeamResults) => {
-    if (match.strengthDifference <= 50) return;
+    // Thresholds scaled for ELO ratings
+    if (match.strengthDifference <= 235) return;
     const team1Strength = match.team1.reduce(
       (sum, player) => sum + player.strength,
       0
@@ -193,7 +198,7 @@ function App() {
       (sum, player) => sum + player.strength,
       0
     );
-    if (match.strengthDifference >= 200)
+    if (match.strengthDifference >= 940)
       if (team1Strength > team2Strength) return ">>";
       else {
         return "<<";
