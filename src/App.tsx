@@ -18,7 +18,6 @@ import { useDebounce } from "./hooks/useDebounce";
 
 // Default player list (fallback if Supabase/localStorage is empty)
 // Players now use pure ELO ratings (standard chess-style system)
-// Middle tier (Rick/Rolf) = 1500, Kevin significantly higher as best player
 const DEFAULT_PLAYERS: PlayerStats[] = [
   { strength: 1875, name: "Frank" },
   { strength: 1359, name: "Guido" },
@@ -134,6 +133,7 @@ function App() {
   const [ratingsVersion, setRatingsVersion] = useState(0);
   const [handicapOffset, setHandicapOffset] = useState<number>(0);
   const [currentCoefficient, setCurrentCoefficient] = useState<number>(300);
+  const [adjustedPlayerStats, setAdjustedPlayerStats] = useState<PlayerStats[]>([]);
 
   const { user } = useAuth();
 
@@ -171,6 +171,15 @@ function App() {
       strength: ratings[player.name]?.rating ?? player.strength
     }));
   };
+
+  // Load adjusted player stats for display
+  useEffect(() => {
+    const loadAdjustedStats = async () => {
+      const stats = await getAdjustedPlayerStats();
+      setAdjustedPlayerStats(stats);
+    };
+    loadAdjustedStats();
+  }, [playerStats, ratingsVersion]);
 
   // Load current handicap coefficient
   useEffect(() => {
@@ -220,6 +229,14 @@ function App() {
     );
   };
 
+  // Get display rating for a player (with buff/nerf applied)
+  const getDisplayRating = (playerName: string): number => {
+    const player = adjustedPlayerStats.find(p => p.name === playerName);
+    const baseRating = player?.strength ?? playerStats.find(p => p.name === playerName)?.strength ?? 1500;
+    const modifier = buffedPlayers.includes(playerName) ? 50 : nerfedPlayers.includes(playerName) ? -50 : 0;
+    return Math.round(baseRating + modifier);
+  };
+
   const strengthDifferenceIndicator = (match: TeamResults) => {
     // Thresholds scaled for ELO ratings
     if (match.strengthDifference <= 235) return;
@@ -244,8 +261,8 @@ function App() {
 
   return (
     <div
-      className="flex flex-col gap-6 items-center overflow-auto px-4 md:px-8 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
-      style={{ paddingTop: '2rem', paddingBottom: '3rem' }}
+      className="flex flex-col gap-6 items-center overflow-auto min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+      style={{ padding: '24px'}}
     >
       <Card.Root className="w-full max-w-4xl shadow-2xl border border-gray-700 transition-all duration-300 hover:shadow-blue-500/20">
         <Card.Body className="flex items-center justify-center gap-4 bg-gray-800/50">
@@ -309,7 +326,7 @@ function App() {
               {playerStats.map((item) => (
                 <CheckboxCard
                   className="transition-all duration-200 hover:scale-105"
-                  label={item.name}
+                  label={`${item.name} (${getDisplayRating(item.name)})`}
                   key={item.name}
                   value={item.name}
                 />
@@ -425,10 +442,9 @@ function App() {
               <Card.Root
                 key={index}
                 className={`w-full transition-all duration-500 hover:scale-[1.02] cursor-pointer ${
-                  index === 0 ? 'ring-2 ring-green-500 ring-offset-2 ring-offset-gray-900' : ''
-                } ${
-                  selectedTeam?.team1 === match.team1 && selectedTeam?.team2 === match.team2
-                    ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
+                  (selectedTeam?.team1 === match.team1 && selectedTeam?.team2 === match.team2) ||
+                  (!selectedTeam && index === 0)
+                    ? 'ring-2 ring-green-500 ring-offset-2 ring-offset-gray-900'
                     : ''
                 }`}
                 style={{
@@ -484,6 +500,7 @@ function App() {
       <MatchHistory
         currentTeams={user ? selectedTeam : null}
         onRatingsUpdate={handleRatingsUpdate}
+        maps={maps}
       />
     </div>
   );

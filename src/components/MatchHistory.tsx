@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "../auth/AuthContext";
 import {
   DialogRoot,
   DialogTrigger,
@@ -24,12 +25,19 @@ import {
 } from "../storage";
 import { Field } from "@/components/ui/field";
 
+interface MapInfo {
+  name: string;
+  url: string;
+}
+
 interface MatchHistoryProps {
   currentTeams: { team1: PlayerStats[]; team2: PlayerStats[] } | null;
   onRatingsUpdate: () => void;
+  maps: MapInfo[];
 }
 
-export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProps) => {
+export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps }: MatchHistoryProps) => {
+  const { user } = useAuth();
   const [matchHistory, setMatchHistory] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
@@ -253,11 +261,18 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
                     </div>
 
                     <Field label="Map Played (Optional)">
-                      <Input
+                      <select
                         value={selectedMap}
                         onChange={(e) => setSelectedMap(e.target.value)}
-                        placeholder="e.g., Shoot House"
-                      />
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select a map...</option>
+                        {maps.map((map) => (
+                          <option key={map.name} value={map.name}>
+                            {map.name}
+                          </option>
+                        ))}
+                      </select>
                     </Field>
                   </DialogBody>
                   <DialogFooter>
@@ -300,13 +315,15 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
                             {formatDate(match.date)}
                             {match.mapPlayed && ` • ${match.mapPlayed}`}
                           </div>
-                          <Button
-                            size="sm"
-                            onClick={() => handleDeleteMatch(match.id)}
-                            className="text-red-400 hover:text-red-300"
-                          >
-                            🗑️
-                          </Button>
+                          {user && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleDeleteMatch(match.id)}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              🗑️
+                            </Button>
+                          )}
                         </div>
 
                         <div className="flex items-center justify-between gap-4">
