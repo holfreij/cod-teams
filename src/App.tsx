@@ -222,15 +222,19 @@ function App() {
 
   return (
     <div
-      className="flex flex-col gap-6 items-center overflow-auto px-4 md:px-8 py-8 md:py-12 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+      className="flex flex-col gap-6 items-center overflow-auto px-4 md:px-8 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+      style={{ paddingTop: '2rem', paddingBottom: '3rem' }}
     >
       <Card.Root className="w-full max-w-4xl shadow-2xl border border-gray-700 transition-all duration-300 hover:shadow-blue-500/20">
         <Card.Body className="flex items-center justify-center gap-4 bg-gray-800/50">
           <Heading
-            className="text-2xl md:text-4xl font-bold bg-clip-text text-transparent"
+            className="text-2xl md:text-4xl font-bold"
             style={{
-              backgroundImage: 'linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3)',
+              backgroundImage: 'linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000)',
               backgroundSize: '200% 100%',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              color: 'transparent',
               animation: 'rainbowShift 3s linear infinite',
             }}
           >
@@ -382,8 +386,8 @@ function App() {
                 max={200}
                 step={10}
                 value={[handicapOffset]}
-                onValueChange={(newValues: any) =>
-                  setHandicapOffset(newValues.value[0])
+                onValueChange={(details: { value: number[] }) =>
+                  setHandicapOffset(details.value[0])
                 }
               />
               <p className="text-sm md:text-base font-semibold text-green-400">Easier</p>
