@@ -147,6 +147,9 @@ function App() {
   // Debounce handicap offset to avoid excessive recalculations while dragging slider
   const debouncedHandicapOffset = useDebounce(handicapOffset, 300);
 
+  // Debounce active players to avoid excessive database calls when toggling checkboxes
+  const debouncedActivePlayers = useDebounce(activePlayers, 500);
+
   // Check if teams are uneven
   const isUnevenTeams = useMemo(() => {
     if (solutions.length === 0) return false;
@@ -203,7 +206,7 @@ function App() {
       const totalHandicap = currentCoefficient + debouncedHandicapOffset;
       setSolutions(
         createBalancedTeams(
-          adjustedStats.filter((player) => activePlayers.includes(player.name)),
+          adjustedStats.filter((player) => debouncedActivePlayers.includes(player.name)),
           buffedPlayers,
           nerfedPlayers,
           totalHandicap
@@ -211,7 +214,7 @@ function App() {
       );
     };
     updateSolutions();
-  }, [activePlayers, buffedPlayers, nerfedPlayers, ratingsVersion, currentCoefficient, debouncedHandicapOffset, getAdjustedPlayerStats]);
+  }, [debouncedActivePlayers, buffedPlayers, nerfedPlayers, ratingsVersion, currentCoefficient, debouncedHandicapOffset, getAdjustedPlayerStats]);
 
   const handleRatingsUpdate = () => {
     setRatingsVersion((prev: number) => prev + 1);
