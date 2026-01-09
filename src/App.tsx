@@ -204,7 +204,7 @@ function App() {
   useEffect(() => {
     const updateSolutions = async () => {
       const adjustedStats = await getAdjustedPlayerStats();
-      const totalHandicap = currentCoefficient + debouncedHandicapOffset;
+      const totalHandicap = currentCoefficient * (1 + debouncedHandicapOffset / 100);
       setSolutions(
         createBalancedTeams(
           adjustedStats.filter((player) => debouncedActivePlayers.includes(player.name)),
@@ -314,11 +314,11 @@ function App() {
                 setRandomMap(map.name);
               }}
             >
-              🎲 Pick Random Map
+              🎲 Kies willekeurige map
             </Button>
             {randomMap && (
               <div className="mb-2 text-center text-lg md:text-xl font-bold text-blue-400 animate-pulse">
-                Selected: {randomMap}
+                {randomMap}
               </div>
             )}
           </AccordionRoot>
@@ -327,7 +327,7 @@ function App() {
       <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
         <Card.Body className="flex flex-col gap-4">
           <Heading className="text-xl md:text-2xl text-center font-bold text-gray-100">
-            👥 Select Players
+            👥 Selecteer spelers
           </Heading>
           <CheckboxGroup
             onValueChange={onActivePlayersChange}
@@ -352,7 +352,7 @@ function App() {
           <AccordionRoot multiple className="w-full">
             <AccordionItem key={"buff"} value={"buff"} className="border-b border-gray-700">
               <AccordionItemTrigger className="text-lg font-semibold hover:text-orange-400 transition-colors">
-                On Fire 🔥
+                On fire 🔥
               </AccordionItemTrigger>
               <AccordionItemContent>
                 <CheckboxGroup
@@ -402,39 +402,36 @@ function App() {
         <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
           <Card.Body className="flex flex-col gap-4">
             <Heading className="text-center text-lg md:text-xl font-bold text-gray-100">
-              ⚖️ Handicap for Smaller Team
+              ⚖️ Stel moeilijkheid voor het kleine team in
             </Heading>
             <div className="flex flex-col gap-3">
               <div className="flex justify-between items-center text-sm text-gray-300">
-                <span>System Coefficient (Smaller Team):</span>
+                <span>Basiswaarde:</span>
                 <span className="font-bold text-blue-400">{Math.round(currentCoefficient)}</span>
               </div>
               <div className="flex justify-between items-center text-sm text-gray-300">
-                <span>Manual Adjustment:</span>
-                <span className="font-bold text-purple-400">{handicapOffset > 0 ? '+' : ''}{handicapOffset}</span>
+                <span>Handmatige Aanpassing:</span>
+                <span className="font-bold text-purple-400">{handicapOffset > 0 ? '+' : ''}{handicapOffset}%</span>
               </div>
               <div className="flex justify-between items-center text-sm text-gray-300 border-t border-gray-700 pt-2">
-                <span>Total Handicap (Smaller Team):</span>
-                <span className="font-bold text-green-400">{Math.round(currentCoefficient + handicapOffset)}</span>
+                <span>Totale Handicap:</span>
+                <span className="font-bold text-green-400">{Math.round(currentCoefficient * (1 + handicapOffset / 100))}</span>
               </div>
             </div>
             <div className="flex gap-2 md:gap-4 items-center justify-center">
-              <p className="text-sm md:text-base font-semibold text-red-400">Harder for Smaller</p>
+              <p className="text-sm md:text-base font-semibold text-red-400">Moeilijker</p>
               <Slider
                 className="flex-1 max-w-md"
-                min={-200}
-                max={200}
-                step={10}
+                min={-50}
+                max={50}
+                step={5}
                 value={[handicapOffset]}
                 onValueChange={(details: { value: number[] }) =>
                   setHandicapOffset(details.value[0])
                 }
               />
-              <p className="text-sm md:text-base font-semibold text-green-400">Easier for Smaller</p>
+              <p className="text-sm md:text-base font-semibold text-green-400">Makkelijker</p>
             </div>
-            <p className="text-xs text-center text-gray-400">
-              This handicap applies to the <strong>smaller team</strong>. Higher values give them stronger players to compensate for fewer members.
-            </p>
           </Card.Body>
         </Card.Root>
       )}
@@ -494,7 +491,7 @@ function App() {
                             setIsRecordDialogOpen(true);
                           }}
                         >
-                          📝 Record Match
+                          📝 Registreer uitslag
                         </Button>
                       )}
                     </div>

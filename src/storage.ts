@@ -251,7 +251,7 @@ export const resetPlayerRatings = async (): Promise<void> => {
 
 // Uneven Team Handicap Management
 const HANDICAP_COEFFICIENT_KEY = 'uneven_team_coefficient';
-const DEFAULT_HANDICAP_COEFFICIENT = 300; // ELO points per full player disadvantage
+const DEFAULT_HANDICAP_COEFFICIENT = 1500; // ELO points per full player disadvantage
 
 export const getHandicapCoefficient = async (): Promise<number> => {
   if (isSupabaseConfigured()) {
@@ -327,7 +327,7 @@ export const adjustHandicapCoefficient = async (
   // If smaller team lost when they should have won, increase handicap
   const adjustment = -error * learningRate;
 
-  const newCoefficient = Math.max(0, Math.min(1000, currentCoefficient + adjustment));
+  const newCoefficient = Math.max(0, Math.min(3000, currentCoefficient + adjustment));
   await updateHandicapCoefficient(newCoefficient);
 
   return newCoefficient;

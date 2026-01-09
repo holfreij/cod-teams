@@ -66,18 +66,18 @@ export const Auth = () => {
       <Card.Body className="flex flex-col gap-4">
         <div className="text-center">
           <Heading className="text-xl md:text-2xl font-bold text-gray-100">
-            🔐 Sign In Required
+            🔐 Inloggen
           </Heading>
           <p className="text-sm text-gray-400 mt-2">
-            Sign in to record match results and update player ratings
+            Log in om wedstrijdresultaten te kunnen registreren
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          <Field label="Email Address">
+          <Field label="Emailadres">
             <Input
               type="email"
-              placeholder="your.email@example.com"
+              placeholder="mail@qmg.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
@@ -90,7 +90,7 @@ export const Auth = () => {
             disabled={loading}
             className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Sending magic link...' : '✨ Send Magic Link'}
+            {loading ? 'Magic Link aan het versturen...' : '✨ Ontvang Magic Link'}
           </Button>
 
           {message && (
@@ -105,11 +105,6 @@ export const Auth = () => {
             </div>
           )}
         </form>
-
-        <div className="text-xs text-gray-500 text-center">
-          <p>No password needed! We'll send you a magic link to sign in.</p>
-          <p className="mt-1">The link expires after 1 hour.</p>
-        </div>
       </Card.Body>
     </Card.Root>
   );
