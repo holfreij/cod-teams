@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { MatchHistory } from "./components/MatchHistory";
 import { PlayerStatsDisplay } from "./components/PlayerStats";
+import { SystemInfo } from "./components/SystemInfo";
 import { Auth } from "./components/Auth";
 import { getPlayerRatings } from "./storage";
 import { useAuth } from "./auth/AuthContext";
@@ -404,6 +405,8 @@ function App() {
       )}
 
       <Auth />
+
+      <SystemInfo version={ratingsVersion} />
 
       <PlayerStatsDisplay />
 
