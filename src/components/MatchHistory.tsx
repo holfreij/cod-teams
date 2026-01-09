@@ -230,18 +230,18 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
         <Card.Body className="flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <Heading className="text-xl md:text-2xl font-bold text-gray-100">
-              📊 Match History
+              📊 Geschiedenis
             </Heading>
             {currentTeams && (
               <DialogRoot open={isRecordDialogOpen} onOpenChange={(e) => handleDialogOpenChange(e.open)}>
                 <DialogTrigger asChild>
                   <Button className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-green-500/50 transition-all duration-300 hover:scale-105">
-                    📝 Record Match
+                    📝 Registreer uitslag
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="bg-gray-800 border border-gray-700">
                   <DialogHeader>
-                    <DialogTitle className="text-xl font-bold">Record Match Result</DialogTitle>
+                    <DialogTitle className="text-xl font-bold">Registreer wedstrijd uitslag</DialogTitle>
                   </DialogHeader>
                   <DialogBody className="flex flex-col gap-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -282,7 +282,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
                       </Field>
                     </div>
 
-                    <Field label="Map Played (Optional)">
+                    <Field label="Gespeelde Map (Optioneel)">
                       <select
                         value={selectedMap}
                         onChange={(e) => setSelectedMap(e.target.value)}
@@ -295,7 +295,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
                           paddingRight: '2.5rem'
                         }}
                       >
-                        <option value="" className="bg-gray-800">Select a map...</option>
+                        <option value="" className="bg-gray-800">Selecteer een map...</option>
                         {maps.map((map) => (
                           <option key={map.name} value={map.name} className="bg-gray-800">
                             {map.name}
@@ -309,7 +309,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
                       onClick={handleRecordMatch}
                       className="bg-green-600 hover:bg-green-700 text-white"
                     >
-                      Save Match
+                      Registreer uitslag
                     </Button>
                   </DialogFooter>
                   <DialogCloseTrigger />
@@ -324,7 +324,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
             </div>
           ) : matchHistory.length === 0 ? (
             <p className="text-gray-400 text-center py-8">
-              No matches recorded yet. Play a match and record the results!
+              Nog geen wedstrijden geregistreerd. Speel een wedstrijd en registreer de uitslag!
             </p>
           ) : (
             <>
@@ -376,12 +376,6 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
                             </div>
                           </div>
                         </div>
-
-                        {match.winner !== 0 && (
-                          <div className="text-center text-sm text-green-400 font-semibold">
-                            Winner: Team {match.winner}
-                          </div>
-                        )}
                       </div>
                     </Card.Body>
                   </Card.Root>
@@ -392,7 +386,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
                   onClick={handleLoadMore}
                   className="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-white"
                 >
-                  Load More ({matchHistory.length - displayCount} remaining)
+                  Laad meer ({matchHistory.length - displayCount} resterend)
                 </Button>
               )}
             </>
