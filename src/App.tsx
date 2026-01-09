@@ -141,6 +141,7 @@ function App() {
   const [handicapOffset, setHandicapOffset] = useState<number>(0);
   const [currentCoefficient, setCurrentCoefficient] = useState<number>(300);
   const [adjustedPlayerStats, setAdjustedPlayerStats] = useState<PlayerStats[]>([]);
+  const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
 
   const { user } = useAuth();
 
@@ -484,6 +485,18 @@ function App() {
                       <div className="text-xs text-gray-300">
                         {match.strengthDifference}
                       </div>
+                      {user && ((selectedTeam && teamsMatch(selectedTeam.team1, match.team1) && teamsMatch(selectedTeam.team2, match.team2)) || (!selectedTeam && index === 0)) && (
+                        <Button
+                          className="mt-2 px-3 py-1 bg-gradient-to-r from-green-600 to-green-700 text-white text-sm rounded-lg font-semibold shadow-lg hover:shadow-green-500/50 transition-all duration-300 hover:scale-105"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTeam({ team1: match.team1, team2: match.team2 });
+                            setIsRecordDialogOpen(true);
+                          }}
+                        >
+                          📝 Record Match
+                        </Button>
+                      )}
                     </div>
                     <Card.Root className="w-full sm:flex-1 bg-gray-800/80 backdrop-blur transition-transform duration-300 hover:scale-105">
                       <Card.Body>
@@ -508,9 +521,11 @@ function App() {
       <PlayerStatsDisplay />
 
       <MatchHistory
-        currentTeams={user ? selectedTeam : null}
+        currentTeams={user ? (selectedTeam || { team1: solutions[0]?.team1 || [], team2: solutions[0]?.team2 || [] }) : null}
         onRatingsUpdate={handleRatingsUpdate}
         maps={maps}
+        externalDialogOpen={isRecordDialogOpen}
+        onExternalDialogClose={() => setIsRecordDialogOpen(false)}
       />
     </div>
   );

@@ -34,13 +34,29 @@ interface MatchHistoryProps {
   currentTeams: { team1: PlayerStats[]; team2: PlayerStats[] } | null;
   onRatingsUpdate: () => void;
   maps: MapInfo[];
+  externalDialogOpen?: boolean;
+  onExternalDialogClose?: () => void;
 }
 
-export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps }: MatchHistoryProps) => {
+export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDialogOpen, onExternalDialogClose }: MatchHistoryProps) => {
   const { user } = useAuth();
   const [matchHistory, setMatchHistory] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
+
+  // Sync with external dialog control
+  useEffect(() => {
+    if (externalDialogOpen) {
+      setIsRecordDialogOpen(true);
+    }
+  }, [externalDialogOpen]);
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsRecordDialogOpen(open);
+    if (!open && onExternalDialogClose) {
+      onExternalDialogClose();
+    }
+  };
   const [team1Score, setTeam1Score] = useState("");
   const [team2Score, setTeam2Score] = useState("");
   const [selectedMap, setSelectedMap] = useState("");
@@ -191,7 +207,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps }: MatchHisto
     setTeam1Score("");
     setTeam2Score("");
     setSelectedMap("");
-    setIsRecordDialogOpen(false);
+    handleDialogOpenChange(false);
   };
 
   const handleDeleteMatch = async (matchId: string) => {
@@ -217,7 +233,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps }: MatchHisto
               📊 Match History
             </Heading>
             {currentTeams && (
-              <DialogRoot open={isRecordDialogOpen} onOpenChange={(e) => setIsRecordDialogOpen(e.open)}>
+              <DialogRoot open={isRecordDialogOpen} onOpenChange={(e) => handleDialogOpenChange(e.open)}>
                 <DialogTrigger asChild>
                   <Button className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-green-500/50 transition-all duration-300 hover:scale-105">
                     📝 Record Match
