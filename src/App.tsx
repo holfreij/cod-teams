@@ -195,7 +195,7 @@ function App() {
       );
     };
     updateSolutions();
-  }, [activePlayers, buffedPlayers, nerfedPlayers, ratingsVersion, currentCoefficient, debouncedHandicapOffset]);
+  }, [activePlayers, buffedPlayers, nerfedPlayers, ratingsVersion, currentCoefficient, debouncedHandicapOffset, getAdjustedPlayerStats]);
 
   const handleRatingsUpdate = () => {
     setRatingsVersion((prev: number) => prev + 1);
