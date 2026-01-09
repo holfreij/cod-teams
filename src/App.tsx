@@ -222,11 +222,18 @@ function App() {
 
   return (
     <div
-      className="flex flex-col gap-6 items-center justify-center overflow-auto px-4 md:px-8 py-8 md:py-12 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+      className="flex flex-col gap-6 items-center overflow-auto px-4 md:px-8 py-8 md:py-12 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
     >
       <Card.Root className="w-full max-w-4xl shadow-2xl border border-gray-700 transition-all duration-300 hover:shadow-blue-500/20">
-        <Card.Body className="flex items-center justify-center gap-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30">
-          <Heading className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+        <Card.Body className="flex items-center justify-center gap-4 bg-gray-800/50">
+          <Heading
+            className="text-2xl md:text-4xl font-bold bg-clip-text text-transparent"
+            style={{
+              backgroundImage: 'linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3)',
+              backgroundSize: '200% 100%',
+              animation: 'rainbowShift 3s linear infinite',
+            }}
+          >
             QMG Teams Generator
           </Heading>
         </Card.Body>
@@ -348,9 +355,9 @@ function App() {
         </Card.Body>
       </Card.Root>
       {isUnevenTeams && solutions.length > 0 && (
-        <Card.Root className="w-full max-w-4xl shadow-xl border border-yellow-700/50 transition-all duration-300 hover:border-yellow-600/50">
-          <Card.Body className="flex flex-col gap-4 bg-gradient-to-r from-yellow-900/20 to-orange-900/20">
-            <Heading className="text-center text-lg md:text-xl font-bold text-yellow-400">
+        <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+          <Card.Body className="flex flex-col gap-4">
+            <Heading className="text-center text-lg md:text-xl font-bold text-gray-100">
               ⚖️ Uneven Team Handicap Adjustment
             </Heading>
             <div className="flex flex-col gap-3">
