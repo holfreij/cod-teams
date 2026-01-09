@@ -5,14 +5,15 @@ import {
   AccordionRoot,
 } from "@/components/ui/accordion";
 import { CheckboxCard } from "@/components/ui/checkbox-card";
+import { Slider } from "@/components/ui/slider";
 import { Button, Card, CheckboxGroup, Heading } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { MatchHistory } from "./components/MatchHistory";
 import { PlayerStatsDisplay } from "./components/PlayerStats";
 import { SystemInfo } from "./components/SystemInfo";
 import { Auth } from "./components/Auth";
-import { getPlayerRatings } from "./storage";
+import { getPlayerRatings, getHandicapCoefficient } from "./storage";
 import { useAuth } from "./auth/AuthContext";
 
 // Players now use pure ELO ratings (standard chess-style system)
@@ -131,8 +132,16 @@ function App() {
   const [solutions, setSolutions] = useState<TeamResults[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<{ team1: PlayerStats[]; team2: PlayerStats[] } | null>(null);
   const [ratingsVersion, setRatingsVersion] = useState(0);
+  const [handicapOffset, setHandicapOffset] = useState<number>(0);
+  const [currentCoefficient, setCurrentCoefficient] = useState<number>(300);
 
   const { user } = useAuth();
+
+  // Check if teams are uneven
+  const isUnevenTeams = useMemo(() => {
+    if (solutions.length === 0) return false;
+    return solutions[0].team1.length !== solutions[0].team2.length;
+  }, [solutions]);
 
   // Get current player ratings (pure ELO system)
   // If player has played games, use their current rating; otherwise use initial ELO
@@ -143,6 +152,15 @@ function App() {
       strength: ratings[player.name]?.rating ?? player.strength
     }));
   };
+
+  // Load current handicap coefficient
+  useEffect(() => {
+    const loadCoefficient = async () => {
+      const coefficient = await getHandicapCoefficient();
+      setCurrentCoefficient(coefficient);
+    };
+    loadCoefficient();
+  }, [ratingsVersion]);
 
   useEffect(() => {
     const updateSolutions = async () => {
@@ -205,7 +223,7 @@ function App() {
 
   return (
     <div
-      className="flex flex-col gap-6 items-center justify-center overflow-auto p-4 md:p-8 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+      className="flex flex-col gap-6 items-center justify-center overflow-auto p-4 md:p-8 py-8 md:py-12 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
     >
       <Card.Root className="w-full max-w-4xl shadow-2xl border border-gray-700 transition-all duration-300 hover:shadow-blue-500/20">
         <Card.Body className="flex items-center justify-center gap-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30">
@@ -223,7 +241,7 @@ function App() {
             <AccordionItem key="maps" value="maps" className="w-full">
               <AccordionItemTrigger className="text-lg font-semibold">🗺️ Maps</AccordionItemTrigger>
               <AccordionItemContent>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-2">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2">
                   {maps.map((map) => (
                     <li key={map.name}>
                       <a
@@ -330,6 +348,46 @@ function App() {
           </AccordionRoot>
         </Card.Body>
       </Card.Root>
+      {isUnevenTeams && solutions.length > 0 && (
+        <Card.Root className="w-full max-w-4xl shadow-xl border border-yellow-700/50 transition-all duration-300 hover:border-yellow-600/50">
+          <Card.Body className="flex flex-col gap-4 bg-gradient-to-r from-yellow-900/20 to-orange-900/20">
+            <Heading className="text-center text-lg md:text-xl font-bold text-yellow-400">
+              ⚖️ Uneven Team Handicap Adjustment
+            </Heading>
+            <div className="flex flex-col gap-3">
+              <div className="flex justify-between items-center text-sm text-gray-300">
+                <span>Current System Coefficient:</span>
+                <span className="font-bold text-blue-400">{Math.round(currentCoefficient)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm text-gray-300">
+                <span>Manual Offset:</span>
+                <span className="font-bold text-purple-400">{handicapOffset > 0 ? '+' : ''}{handicapOffset}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm text-gray-300 border-t border-gray-700 pt-2">
+                <span>Total Applied:</span>
+                <span className="font-bold text-green-400">{Math.round(currentCoefficient + handicapOffset)}</span>
+              </div>
+            </div>
+            <div className="flex gap-2 md:gap-4 items-center justify-center">
+              <p className="text-sm md:text-base font-semibold text-red-400">Harder</p>
+              <Slider
+                className="flex-1 max-w-md"
+                min={-200}
+                max={200}
+                step={10}
+                value={[handicapOffset]}
+                onValueChange={(newValues: any) =>
+                  setHandicapOffset(newValues.value[0])
+                }
+              />
+              <p className="text-sm md:text-base font-semibold text-green-400">Easier</p>
+            </div>
+            <p className="text-xs text-center text-gray-400">
+              Adjust the handicap for the smaller team. Positive values make it easier for them.
+            </p>
+          </Card.Body>
+        </Card.Root>
+      )}
       {solutions.length > 0 && (
         <div className="flex flex-col items-center gap-6 w-full max-w-4xl pb-8">
           <Heading className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
@@ -359,13 +417,6 @@ function App() {
                 <Card.Body
                   className={`${getBackgroundStyle(match.strengthDifference)} rounded-lg transition-all duration-300`}
                 >
-                  {index === 0 && match.strengthDifference <= 50 && (
-                    <div className="text-center mb-2 text-green-400 font-bold text-sm flex items-center justify-center gap-2">
-                      <span className="text-xl">✨</span>
-                      <span>BEST MATCH</span>
-                      <span className="text-xl">✨</span>
-                    </div>
-                  )}
                   <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-2">
                     <Card.Root className="w-full sm:flex-1 bg-gray-800/80 backdrop-blur transition-transform duration-300 hover:scale-105">
                       <Card.Body>
@@ -383,7 +434,7 @@ function App() {
                         {strengthDifferenceIndicator(match) || "="}
                       </div>
                       <div className="text-xs text-gray-300">
-                        Δ {match.strengthDifference}
+                        {match.strengthDifference}
                       </div>
                     </div>
                     <Card.Root className="w-full sm:flex-1 bg-gray-800/80 backdrop-blur transition-transform duration-300 hover:scale-105">
