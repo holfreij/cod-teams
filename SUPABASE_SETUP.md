@@ -43,7 +43,33 @@ With Supabase:
 5. Click **Run** (or press Ctrl/Cmd + Enter)
 6. You should see "Success. No rows returned" - this is correct!
 
-### 4. Get Your API Credentials
+### 4. Configure Email Authentication
+
+🔐 **Important: Authentication is required to add/delete match results!**
+
+1. In your Supabase dashboard, click **Authentication** in the left sidebar
+2. Click **Providers** tab
+3. Find **Email** provider
+4. Toggle it **ON** if not already enabled
+5. **Important Settings:**
+   - ✅ Enable email provider
+   - ✅ Confirm email: **OFF** (for easier magic link experience)
+   - ✅ Secure email change: **ON** (recommended)
+6. Click **Save**
+
+**Add Authorized Users:**
+1. Go to **Authentication** → **Users**
+2. Click **Add user** → **Create new user**
+3. Enter email addresses for your friend group
+4. Click **Create user**
+5. They'll receive a confirmation email
+
+**OR** let them sign up themselves:
+- They visit the site and enter their email
+- They receive a magic link
+- They're automatically added to the database
+
+### 5. Get Your API Credentials
 
 1. Click **Settings** (gear icon) in the left sidebar
 2. Click **API** in the settings menu
@@ -51,7 +77,7 @@ With Supabase:
    - **Project URL** (looks like: `https://xxx.supabase.co`)
    - **anon public key** (long string starting with `eyJ...`)
 
-### 5. Configure Your App
+### 6. Configure Your App
 
 #### For Local Development:
 
@@ -94,18 +120,44 @@ With Supabase:
 ## Verifying It Works
 
 1. Open your app
-2. Record a match result
-3. Open Supabase dashboard → **Table Editor**
-4. You should see:
+2. You'll see a **"Sign In Required"** section
+3. Enter your email and click **"Send Magic Link"**
+4. Check your email and click the magic link
+5. You'll be redirected back to the app, now signed in
+6. Select teams and record a match result
+7. Open Supabase dashboard → **Table Editor**
+8. You should see:
    - `match_history` table with your match
    - `player_ratings` table with updated ratings
+9. Check **Authentication** → **Users** to see who's signed in
+
+## How Authentication Works
+
+### Magic Link Flow:
+1. User enters email
+2. Supabase sends email with magic link
+3. User clicks link (valid for 1 hour)
+4. User is automatically signed in
+5. Session lasts 7 days by default
+
+### What's Protected:
+- ✅ **Public (no login):** View teams, see ratings, browse match history
+- 🔒 **Authenticated only:** Record matches, delete matches, update ratings
+
+### Managing Users:
+- Anyone can request a magic link
+- You can pre-add users in Supabase dashboard
+- Or let people sign themselves up
+- No passwords to manage!
 
 ## Security Notes
 
-- The **anon key** is safe to expose in client-side code
-- Row Level Security (RLS) is enabled
-- Current setup allows public read/write (perfect for a friend group)
-- If you need private data, you can add Supabase authentication later
+- ✅ The **anon key** is safe to expose in client-side code
+- ✅ Row Level Security (RLS) protects write operations
+- ✅ Only authenticated users can add/modify data
+- ✅ Anyone can view data (perfect for spectators)
+- 🔒 Magic links expire after 1 hour
+- 🔒 Sessions expire after 7 days (users must re-authenticate)
 
 ## Troubleshooting
 
@@ -116,6 +168,22 @@ With Supabase:
 - Check browser console for errors
 - Verify your environment variables are set correctly
 - Make sure the migration SQL ran successfully
+
+### Magic link not arriving
+- Check spam/junk folder
+- Verify email provider is enabled in Supabase
+- Check Supabase logs: **Authentication** → **Logs**
+- Try a different email address
+
+### "Permission denied" when recording match
+- Make sure you're signed in (check for email display at top)
+- RLS policies require authentication - sign in first
+- If still failing, check Supabase logs for errors
+
+### Session expired / keeps logging out
+- Sessions last 7 days by default
+- Clear browser cookies and sign in again
+- Check if Supabase project is still active
 
 ### Want to reset everything?
 Run this in SQL Editor:

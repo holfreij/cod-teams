@@ -11,7 +11,9 @@ import { useEffect, useMemo, useState } from "react";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { MatchHistory } from "./components/MatchHistory";
 import { PlayerStatsDisplay } from "./components/PlayerStats";
+import { Auth } from "./components/Auth";
 import { getPlayerRatings } from "./storage";
+import { useAuth } from "./auth/AuthContext";
 
 const playerStats: PlayerStats[] = [
   { strength: 400, name: "Frank" },
@@ -127,6 +129,8 @@ function App() {
   const [solutions, setSolutions] = useState<TeamResults[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<{ team1: PlayerStats[]; team2: PlayerStats[] } | null>(null);
   const [ratingsVersion, setRatingsVersion] = useState(0);
+
+  const { user } = useAuth();
 
   // Get current player ratings and apply them to base stats
   const getAdjustedPlayerStats = async (): Promise<PlayerStats[]> => {
@@ -424,10 +428,12 @@ function App() {
         </div>
       )}
 
+      <Auth />
+
       <PlayerStatsDisplay />
 
       <MatchHistory
-        currentTeams={selectedTeam}
+        currentTeams={user ? selectedTeam : null}
         onRatingsUpdate={handleRatingsUpdate}
       />
     </div>
