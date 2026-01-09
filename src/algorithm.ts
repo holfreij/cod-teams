@@ -33,7 +33,8 @@ function getCombinations<T>(arr: T[], size: number): T[][] {
 export function createBalancedTeams(
   players: PlayerStats[],
   buffedPlayers: string[],
-  nerfedPlayers: string[]
+  nerfedPlayers: string[],
+  handicapCoefficient: number
 ): TeamResults[] {
   // Apply temporary rating adjustments for "on fire" or "noob" players
   // These are small temporary boosts/penalties (±50 ELO) for current session
@@ -74,11 +75,26 @@ export function createBalancedTeams(
     if (seenTeams.has(teamKey)) continue;
     seenTeams.add(teamKey);
 
-    const team1Strength = team1.reduce((sum, p) => sum + p.strength, 0);
-    const team2Strength = team2.reduce((sum, p) => sum + p.strength, 0);
+    let team1Strength = team1.reduce((sum, p) => sum + p.strength, 0);
+    let team2Strength = team2.reduce((sum, p) => sum + p.strength, 0);
 
-    // Simple strength difference (no handicap applied during team generation)
-    // Handicap is only applied during match result calculation
+    // Apply handicap for uneven teams during team generation
+    // This ensures the smaller team gets stronger players to compensate
+    const isUnevenTeams = team1.length !== team2.length;
+    if (isUnevenTeams) {
+      const smallerSize = Math.min(team1.length, team2.length);
+      const largerSize = Math.max(team1.length, team2.length);
+      const ratio = 1 - (smallerSize / largerSize);
+      const handicap = Math.round(handicapCoefficient * ratio);
+
+      // Add handicap to the smaller team's strength
+      if (team1.length < team2.length) {
+        team1Strength += handicap;
+      } else {
+        team2Strength += handicap;
+      }
+    }
+
     const strengthDifference = Math.abs(team1Strength - team2Strength);
 
     teamCombinations.push({
