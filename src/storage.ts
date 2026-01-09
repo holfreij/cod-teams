@@ -216,14 +216,96 @@ export const resetPlayerRatings = async (): Promise<void> => {
   localStorage.removeItem(PLAYER_RATINGS_KEY);
 };
 
+// Uneven Team Handicap Management
+const HANDICAP_COEFFICIENT_KEY = 'uneven_team_coefficient';
+const DEFAULT_HANDICAP_COEFFICIENT = 300; // ELO points per full player disadvantage
+
+export const getHandicapCoefficient = async (): Promise<number> => {
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', HANDICAP_COEFFICIENT_KEY)
+        .single();
+
+      if (error) throw error;
+      return data?.value as number || DEFAULT_HANDICAP_COEFFICIENT;
+    } catch (error) {
+      console.error('Error fetching handicap coefficient from Supabase:', error);
+    }
+  }
+
+  // Fallback to localStorage
+  const stored = localStorage.getItem(HANDICAP_COEFFICIENT_KEY);
+  return stored ? parseFloat(stored) : DEFAULT_HANDICAP_COEFFICIENT;
+};
+
+export const updateHandicapCoefficient = async (newCoefficient: number): Promise<void> => {
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase.from('settings').upsert({
+        key: HANDICAP_COEFFICIENT_KEY,
+        value: newCoefficient,
+      });
+      return;
+    } catch (error) {
+      console.error('Error updating handicap coefficient in Supabase:', error);
+    }
+  }
+
+  localStorage.setItem(HANDICAP_COEFFICIENT_KEY, newCoefficient.toString());
+};
+
+// Calculate handicap for uneven teams
+// Returns ELO points to add to smaller team's rating
+export const calculateUnevenTeamHandicap = (
+  smallerTeamSize: number,
+  largerTeamSize: number,
+  coefficient: number
+): number => {
+  if (smallerTeamSize === largerTeamSize) return 0;
+
+  // Handicap scales with team size ratio
+  // 2v3: (1 - 2/3) = 0.33 → coefficient * 0.33
+  // 5v6: (1 - 5/6) = 0.17 → coefficient * 0.17
+  // This means 2v3 gets double the handicap of 5v6
+  const ratio = 1 - (smallerTeamSize / largerTeamSize);
+  return Math.round(coefficient * ratio);
+};
+
+// Update handicap coefficient based on match outcome
+// If smaller team wins more than expected, reduce coefficient
+// If smaller team loses more than expected, increase coefficient
+export const adjustHandicapCoefficient = async (
+  currentCoefficient: number,
+  smallerTeamWon: boolean,
+  expectedWinProbability: number
+): Promise<number> => {
+  // Learning rate: how quickly we adjust the coefficient
+  const learningRate = 20;
+
+  const actualOutcome = smallerTeamWon ? 1 : 0;
+  const error = actualOutcome - expectedWinProbability;
+
+  // If smaller team won when they shouldn't have, reduce handicap
+  // If smaller team lost when they should have won, increase handicap
+  const adjustment = -error * learningRate;
+
+  const newCoefficient = Math.max(0, Math.min(1000, currentCoefficient + adjustment));
+  await updateHandicapCoefficient(newCoefficient);
+
+  return newCoefficient;
+};
+
 // Calculate rating change based on ELO system
-// Using k-factor of 24 for balanced responsiveness with pure ELO ratings
+// Using standard k-factor of 32 for active players
 export const calculateRatingChange = (
   _playerRating: number,
   teamAvgRating: number,
   opponentAvgRating: number,
   won: boolean,
-  kFactor: number = 24
+  kFactor: number = 32
 ): number => {
   const expectedScore = 1 / (1 + Math.pow(10, (opponentAvgRating - teamAvgRating) / 400));
   const actualScore = won ? 1 : 0;

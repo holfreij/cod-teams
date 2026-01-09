@@ -33,9 +33,10 @@ function getCombinations<T>(arr: T[], size: number): T[][] {
 export function createBalancedTeams(
   players: PlayerStats[],
   buffedPlayers: string[],
-  nerfedPlayers: string[],
-  unevenTeamsPenalty: number
+  nerfedPlayers: string[]
 ): TeamResults[] {
+  // Apply temporary rating adjustments for "on fire" or "noob" players
+  // These are small temporary boosts/penalties (±50 ELO) for current session
   const updatedPlayers = players.map((player) => ({
     ...player,
     strength:
@@ -76,12 +77,9 @@ export function createBalancedTeams(
     const team1Strength = team1.reduce((sum, p) => sum + p.strength, 0);
     const team2Strength = team2.reduce((sum, p) => sum + p.strength, 0);
 
-    const unevenSizedTeam = team1.length < team2.length;
-
-    const strengthDifference = Math.abs(
-      (unevenSizedTeam ? team1Strength - unevenTeamsPenalty : team1Strength) -
-        team2Strength
-    );
+    // Simple strength difference (no handicap applied during team generation)
+    // Handicap is only applied during match result calculation
+    const strengthDifference = Math.abs(team1Strength - team2Strength);
 
     teamCombinations.push({
       team1,

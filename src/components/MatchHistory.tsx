@@ -18,6 +18,9 @@ import {
   updatePlayerRatings,
   calculateRatingChange,
   getPlayerRatings,
+  getHandicapCoefficient,
+  calculateUnevenTeamHandicap,
+  adjustHandicapCoefficient,
 } from "../storage";
 import { Field } from "@/components/ui/field";
 
@@ -62,15 +65,35 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
     const getCurrentRating = (playerName: string, initialStrength: number) =>
       ratings[playerName]?.rating ?? initialStrength;
 
-    const team1AvgRating =
+    let team1AvgRating =
       currentTeams.team1.reduce((sum, p) => {
         return sum + getCurrentRating(p.name, p.strength);
       }, 0) / currentTeams.team1.length;
 
-    const team2AvgRating =
+    let team2AvgRating =
       currentTeams.team2.reduce((sum, p) => {
         return sum + getCurrentRating(p.name, p.strength);
       }, 0) / currentTeams.team2.length;
+
+    // Apply handicap for uneven teams
+    const team1Size = currentTeams.team1.length;
+    const team2Size = currentTeams.team2.length;
+    const isUnevenMatch = team1Size !== team2Size;
+    let handicapApplied = 0;
+
+    if (isUnevenMatch) {
+      const coefficient = await getHandicapCoefficient();
+      const smallerSize = Math.min(team1Size, team2Size);
+      const largerSize = Math.max(team1Size, team2Size);
+      handicapApplied = calculateUnevenTeamHandicap(smallerSize, largerSize, coefficient);
+
+      // Apply handicap to smaller team's rating
+      if (team1Size < team2Size) {
+        team1AvgRating += handicapApplied;
+      } else {
+        team2AvgRating += handicapApplied;
+      }
+    }
 
     const ratingChanges: { [playerName: string]: number } = {};
 
@@ -110,6 +133,21 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
 
     await saveMatchResult(match);
     await updatePlayerRatings(match);
+
+    // Adjust handicap coefficient based on match outcome (for uneven matches)
+    if (isUnevenMatch) {
+      const expectedWinProb = 1 / (1 + Math.pow(10, (team2AvgRating - team1AvgRating) / 400));
+      const smallerTeamIsTeam1 = team1Size < team2Size;
+      const smallerTeamWon = smallerTeamIsTeam1 ? (winner === 1) : (winner === 2);
+
+      const coefficient = await getHandicapCoefficient();
+      await adjustHandicapCoefficient(
+        coefficient,
+        smallerTeamWon,
+        smallerTeamIsTeam1 ? expectedWinProb : (1 - expectedWinProb)
+      );
+    }
+
     const history = await getMatchHistory();
     setMatchHistory(history);
     onRatingsUpdate();

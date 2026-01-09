@@ -5,9 +5,8 @@ import {
   AccordionRoot,
 } from "@/components/ui/accordion";
 import { CheckboxCard } from "@/components/ui/checkbox-card";
-import { Slider } from "@/components/ui/slider";
 import { Button, Card, CheckboxGroup, Heading } from "@chakra-ui/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { MatchHistory } from "./components/MatchHistory";
 import { PlayerStatsDisplay } from "./components/PlayerStats";
@@ -128,7 +127,6 @@ function App() {
   const [buffedPlayers, setBuffedPlayers] = useState<string[]>([]);
   const [nerfedPlayers, setNerfedPlayers] = useState<string[]>([]);
   const [randomMap, setRandomMap] = useState<string | null>(null);
-  const [unevenTeamsPenalty, setUnevenTeamsPenalty] = useState<number>(0);
   const [solutions, setSolutions] = useState<TeamResults[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<{ team1: PlayerStats[]; team2: PlayerStats[] } | null>(null);
   const [ratingsVersion, setRatingsVersion] = useState(0);
@@ -152,13 +150,12 @@ function App() {
         createBalancedTeams(
           adjustedStats.filter((player) => activePlayers.includes(player.name)),
           buffedPlayers,
-          nerfedPlayers,
-          unevenTeamsPenalty
+          nerfedPlayers
         )
       );
     };
     updateSolutions();
-  }, [activePlayers, unevenTeamsPenalty, buffedPlayers, nerfedPlayers, ratingsVersion]);
+  }, [activePlayers, buffedPlayers, nerfedPlayers, ratingsVersion]);
 
   const handleRatingsUpdate = () => {
     setRatingsVersion((prev: number) => prev + 1);
@@ -168,10 +165,6 @@ function App() {
     if (newActivePlayers.length < 4) return;
     setActivePlayers(newActivePlayers);
   };
-
-  const isNumberOfPlayersEven: boolean = useMemo(() => {
-    return activePlayers.length % 2 === 0;
-  }, [activePlayers.length]);
 
   const handleBuffedPlayersChange = (newBuffedPlayers: string[]) => {
     setBuffedPlayers(newBuffedPlayers);
@@ -336,29 +329,6 @@ function App() {
           </AccordionRoot>
         </Card.Body>
       </Card.Root>
-      {!isNumberOfPlayersEven && (
-        <Card.Root className="w-full max-w-4xl shadow-xl border border-yellow-700 transition-all duration-300 hover:border-yellow-600 animate-pulse">
-          <Card.Body className="flex flex-col gap-4 bg-gradient-to-r from-yellow-900/20 to-orange-900/20">
-            <p className="text-center font-bold text-lg text-yellow-400">
-              ⚖️ Moeilijkheid voor kleine team
-            </p>
-            <div className="flex gap-2 md:gap-4 items-center justify-center">
-              <p className="text-sm md:text-base font-semibold text-red-400">Moeilijker</p>
-              <Slider
-                className="flex-1 max-w-md"
-                min={-500}
-                max={500}
-                step={10}
-                value={[unevenTeamsPenalty]}
-                onValueChange={(newValues: any) =>
-                  setUnevenTeamsPenalty(newValues.value[0])
-                }
-              />
-              <p className="text-sm md:text-base font-semibold text-green-400">Makkelijker</p>
-            </div>
-          </Card.Body>
-        </Card.Root>
-      )}
       {solutions.length > 0 && (
         <div className="flex flex-col items-center gap-6 w-full max-w-4xl pb-8">
           <Heading className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
