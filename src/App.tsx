@@ -229,17 +229,7 @@ function App() {
     >
       <Card.Root className="w-full max-w-4xl shadow-2xl border border-gray-700 transition-all duration-300 hover:shadow-blue-500/20">
         <Card.Body className="flex items-center justify-center gap-4 bg-gray-800/50">
-          <Heading
-            className="text-2xl md:text-4xl font-bold"
-            style={{
-              backgroundImage: 'linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000)',
-              backgroundSize: '200% 100%',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent',
-              animation: 'rainbowShift 3s linear infinite',
-            }}
-          >
+          <Heading className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
             QMG Teams Generator
           </Heading>
         </Card.Body>
