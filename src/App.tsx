@@ -110,6 +110,13 @@ const maps = [
   { name: "Vacant", url: "https://callofduty.fandom.com/wiki/Vacant" },
 ];
 
+const teamsMatch = (team1: PlayerStats[], team2: PlayerStats[]): boolean => {
+  if (team1.length !== team2.length) return false;
+  const names1 = team1.map(p => p.name).sort();
+  const names2 = team2.map(p => p.name).sort();
+  return names1.every((name, i) => name === names2[i]);
+};
+
 const getBackgroundStyle = (strengthDifference: number) => {
   // Thresholds scaled for ELO ratings (1000-2500 range)
   if (strengthDifference <= 235) {
@@ -441,11 +448,11 @@ function App() {
             .map((match: TeamResults, index: number) => (
               <Card.Root
                 key={index}
-                className={`w-full transition-all duration-500 hover:scale-[1.02] cursor-pointer ${
-                  (selectedTeam?.team1 === match.team1 && selectedTeam?.team2 === match.team2) ||
+                className={`w-full transition-all duration-500 cursor-pointer ${
+                  (selectedTeam && teamsMatch(selectedTeam.team1, match.team1) && teamsMatch(selectedTeam.team2, match.team2)) ||
                   (!selectedTeam && index === 0)
-                    ? 'ring-2 ring-green-500 ring-offset-2 ring-offset-gray-900'
-                    : ''
+                    ? 'scale-105'
+                    : 'hover:scale-[1.02]'
                 }`}
                 style={{
                   animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`
