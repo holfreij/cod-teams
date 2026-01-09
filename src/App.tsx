@@ -164,16 +164,18 @@ function App() {
   useEffect(() => {
     const updateSolutions = async () => {
       const adjustedStats = await getAdjustedPlayerStats();
+      const totalHandicap = currentCoefficient + handicapOffset;
       setSolutions(
         createBalancedTeams(
           adjustedStats.filter((player) => activePlayers.includes(player.name)),
           buffedPlayers,
-          nerfedPlayers
+          nerfedPlayers,
+          totalHandicap
         )
       );
     };
     updateSolutions();
-  }, [activePlayers, buffedPlayers, nerfedPlayers, ratingsVersion]);
+  }, [activePlayers, buffedPlayers, nerfedPlayers, ratingsVersion, currentCoefficient, handicapOffset]);
 
   const handleRatingsUpdate = () => {
     setRatingsVersion((prev: number) => prev + 1);
