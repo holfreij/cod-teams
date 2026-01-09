@@ -14,6 +14,7 @@ import { PlayerStatsDisplay } from "./components/PlayerStats";
 import { Auth } from "./components/Auth";
 import { getPlayerRatings, getHandicapCoefficient } from "./storage";
 import { useAuth } from "./auth/AuthContext";
+import { useDebounce } from "./hooks/useDebounce";
 
 // Players now use pure ELO ratings (standard chess-style system)
 // Middle tier (Rick/Rolf) = 1500, Kevin significantly higher as best player
@@ -136,6 +137,9 @@ function App() {
 
   const { user } = useAuth();
 
+  // Debounce handicap offset to avoid excessive recalculations while dragging slider
+  const debouncedHandicapOffset = useDebounce(handicapOffset, 300);
+
   // Check if teams are uneven
   const isUnevenTeams = useMemo(() => {
     if (solutions.length === 0) return false;
@@ -164,7 +168,7 @@ function App() {
   useEffect(() => {
     const updateSolutions = async () => {
       const adjustedStats = await getAdjustedPlayerStats();
-      const totalHandicap = currentCoefficient + handicapOffset;
+      const totalHandicap = currentCoefficient + debouncedHandicapOffset;
       setSolutions(
         createBalancedTeams(
           adjustedStats.filter((player) => activePlayers.includes(player.name)),
@@ -175,7 +179,7 @@ function App() {
       );
     };
     updateSolutions();
-  }, [activePlayers, buffedPlayers, nerfedPlayers, ratingsVersion, currentCoefficient, handicapOffset]);
+  }, [activePlayers, buffedPlayers, nerfedPlayers, ratingsVersion, currentCoefficient, debouncedHandicapOffset]);
 
   const handleRatingsUpdate = () => {
     setRatingsVersion((prev: number) => prev + 1);
