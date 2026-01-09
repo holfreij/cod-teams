@@ -35,31 +35,34 @@ CREATE INDEX IF NOT EXISTS idx_match_history_date ON match_history(date DESC);
 ALTER TABLE player_ratings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE match_history ENABLE ROW LEVEL SECURITY;
 
--- Create policies to allow public access (for GitHub Pages deployment)
--- Note: You may want to restrict this if you add authentication later
+-- Create policies to allow authenticated users only
+-- Public read access for viewing, but write operations require authentication
+
+-- Player Ratings Policies
 CREATE POLICY "Allow public read access on player_ratings"
   ON player_ratings FOR SELECT
   USING (true);
 
-CREATE POLICY "Allow public insert on player_ratings"
+CREATE POLICY "Allow authenticated insert on player_ratings"
   ON player_ratings FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Allow public update on player_ratings"
+CREATE POLICY "Allow authenticated update on player_ratings"
   ON player_ratings FOR UPDATE
-  USING (true);
+  USING (auth.role() = 'authenticated');
 
+-- Match History Policies
 CREATE POLICY "Allow public read access on match_history"
   ON match_history FOR SELECT
   USING (true);
 
-CREATE POLICY "Allow public insert on match_history"
+CREATE POLICY "Allow authenticated insert on match_history"
   ON match_history FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Allow public delete on match_history"
+CREATE POLICY "Allow authenticated delete on match_history"
   ON match_history FOR DELETE
-  USING (true);
+  USING (auth.role() = 'authenticated');
 
 -- Optional: Create a function to update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
