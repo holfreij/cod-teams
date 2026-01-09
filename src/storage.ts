@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 
 const MATCH_HISTORY_KEY = 'qmg_match_history';
 const PLAYER_RATINGS_KEY = 'qmg_player_ratings';
+const PLAYERS_KEY = 'qmg_players';
 
 // Supabase row types
 interface SupabaseMatchRow {
@@ -24,6 +25,11 @@ interface SupabasePlayerRatingRow {
   losses: number;
   draws: number;
   games_played: number;
+}
+
+interface SupabasePlayerRow {
+  name: string;
+  initial_elo: number;
 }
 
 // Check if Supabase is configured
@@ -339,6 +345,66 @@ export const calculateRatingChange = (
   const expectedScore = 1 / (1 + Math.pow(10, (opponentAvgRating - teamAvgRating) / 400));
   const actualScore = won ? 1 : 0;
   return Math.round(kFactor * (actualScore - expectedScore));
+};
+
+// Player Management functions
+export interface Player {
+  name: string;
+  initialElo: number;
+}
+
+export const getPlayers = async (): Promise<Player[]> => {
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('players')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+
+      return (data || []).map((row: SupabasePlayerRow) => ({
+        name: row.name,
+        initialElo: row.initial_elo,
+      }));
+    } catch (error) {
+      console.error('Error fetching players from Supabase, falling back to localStorage:', error);
+    }
+  }
+
+  // Fallback to localStorage
+  const data = localStorage.getItem(PLAYERS_KEY);
+  if (!data) return [];
+
+  try {
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+};
+
+export const savePlayers = async (players: Player[]): Promise<void> => {
+  if (isSupabaseConfigured()) {
+    try {
+      // Delete all existing players first
+      const { error: deleteError } = await supabase.from('players').delete().neq('name', '');
+      if (deleteError) throw deleteError;
+
+      // Insert new players
+      const playersData = players.map(player => ({
+        name: player.name,
+        initial_elo: player.initialElo,
+      }));
+
+      const { error } = await supabase.from('players').insert(playersData);
+      if (error) throw error;
+      return;
+    } catch (error) {
+      console.error('Error saving players to Supabase, falling back to localStorage:', error);
+    }
+  }
+
+  localStorage.setItem(PLAYERS_KEY, JSON.stringify(players));
 };
 
 // Export/Import functions for backup
