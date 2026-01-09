@@ -51,8 +51,17 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
     const score1 = parseInt(team1Score);
     const score2 = parseInt(team2Score);
 
+    // Validate scores
     if (isNaN(score1) || isNaN(score2)) {
       alert("Please enter valid scores");
+      return;
+    }
+    if (score1 < 0 || score2 < 0) {
+      alert("Scores cannot be negative");
+      return;
+    }
+    if (score1 > 100 || score2 > 100) {
+      alert("Scores seem unrealistic (max 100)");
       return;
     }
 
@@ -76,22 +85,28 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
       }, 0) / currentTeams.team2.length;
 
     // Apply handicap for uneven teams
+    // IMPORTANT: Handicap is SUBTRACTED from smaller team's rating
+    // Rationale: The smaller team already has stronger players (assigned by the algorithm)
+    // to compensate for the player count disadvantage. By subtracting the handicap here,
+    // we account for that disadvantage in the ELO calculation, ensuring fair rating changes.
     const team1Size = currentTeams.team1.length;
     const team2Size = currentTeams.team2.length;
     const isUnevenMatch = team1Size !== team2Size;
     let handicapApplied = 0;
+    let coefficient = 0;
 
     if (isUnevenMatch) {
-      const coefficient = await getHandicapCoefficient();
+      coefficient = await getHandicapCoefficient();
       const smallerSize = Math.min(team1Size, team2Size);
       const largerSize = Math.max(team1Size, team2Size);
       handicapApplied = calculateUnevenTeamHandicap(smallerSize, largerSize, coefficient);
 
-      // Apply handicap to smaller team's rating
+      // Subtract handicap from smaller team's rating (not add!)
+      // This represents their player count disadvantage
       if (team1Size < team2Size) {
-        team1AvgRating += handicapApplied;
+        team1AvgRating -= handicapApplied;
       } else {
-        team2AvgRating += handicapApplied;
+        team2AvgRating -= handicapApplied;
       }
     }
 
@@ -99,9 +114,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
 
     // Calculate changes for team 1
     currentTeams.team1.forEach((player) => {
-      const playerCurrentRating = getCurrentRating(player.name, player.strength);
       ratingChanges[player.name] = calculateRatingChange(
-        playerCurrentRating,
         team1AvgRating,
         team2AvgRating,
         winner === 1 || winner === 0
@@ -110,9 +123,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
 
     // Calculate changes for team 2
     currentTeams.team2.forEach((player) => {
-      const playerCurrentRating = getCurrentRating(player.name, player.strength);
       ratingChanges[player.name] = calculateRatingChange(
-        playerCurrentRating,
         team2AvgRating,
         team1AvgRating,
         winner === 2 || winner === 0
@@ -140,7 +151,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
       const smallerTeamIsTeam1 = team1Size < team2Size;
       const smallerTeamWon = smallerTeamIsTeam1 ? (winner === 1) : (winner === 2);
 
-      const coefficient = await getHandicapCoefficient();
+      // Use cached coefficient value from earlier to avoid race conditions
       await adjustHandicapCoefficient(
         coefficient,
         smallerTeamWon,
