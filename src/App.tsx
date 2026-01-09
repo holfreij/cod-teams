@@ -129,23 +129,27 @@ function App() {
   const [ratingsVersion, setRatingsVersion] = useState(0);
 
   // Get current player ratings and apply them to base stats
-  const getAdjustedPlayerStats = (): PlayerStats[] => {
-    const ratings = getPlayerRatings();
+  const getAdjustedPlayerStats = async (): Promise<PlayerStats[]> => {
+    const ratings = await getPlayerRatings();
     return playerStats.map(player => ({
       ...player,
       strength: player.strength + (ratings[player.name]?.rating || 0)
     }));
   };
+
   useEffect(() => {
-    const adjustedStats = getAdjustedPlayerStats();
-    setSolutions(
-      createBalancedTeams(
-        adjustedStats.filter((player) => activePlayers.includes(player.name)),
-        buffedPlayers,
-        nerfedPlayers,
-        unevenTeamsPenalty
-      )
-    );
+    const updateSolutions = async () => {
+      const adjustedStats = await getAdjustedPlayerStats();
+      setSolutions(
+        createBalancedTeams(
+          adjustedStats.filter((player) => activePlayers.includes(player.name)),
+          buffedPlayers,
+          nerfedPlayers,
+          unevenTeamsPenalty
+        )
+      );
+    };
+    updateSolutions();
   }, [activePlayers, unevenTeamsPenalty, buffedPlayers, nerfedPlayers, ratingsVersion]);
 
   const handleRatingsUpdate = () => {

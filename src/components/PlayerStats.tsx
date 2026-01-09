@@ -1,13 +1,21 @@
+import { useState, useEffect } from "react";
 import { Card, Heading } from "@chakra-ui/react";
 import { getPlayerRatings } from "../storage";
 import { PlayerRating } from "../types";
 
 export const PlayerStatsDisplay = () => {
-  const ratings = getPlayerRatings();
-  const playerList: PlayerRating[] = Object.values(ratings);
+  const [playerList, setPlayerList] = useState<PlayerRating[]>([]);
 
-  // Sort by rating (highest first)
-  playerList.sort((a, b) => b.rating - a.rating);
+  useEffect(() => {
+    const loadRatings = async () => {
+      const ratings = await getPlayerRatings();
+      const list = Object.values(ratings);
+      // Sort by rating (highest first)
+      list.sort((a, b) => b.rating - a.rating);
+      setPlayerList(list);
+    };
+    loadRatings();
+  }, []);
 
   if (playerList.length === 0) {
     return null;

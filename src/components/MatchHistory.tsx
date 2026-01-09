@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DialogRoot,
   DialogTrigger,
@@ -27,31 +27,22 @@ interface MatchHistoryProps {
 }
 
 export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProps) => {
-  const [matchHistory, setMatchHistory] = useState<MatchResult[]>(getMatchHistory());
+  const [matchHistory, setMatchHistory] = useState<MatchResult[]>([]);
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
   const [team1Score, setTeam1Score] = useState("");
   const [team2Score, setTeam2Score] = useState("");
-  const [screenshot, setScreenshot] = useState<string | null>(null);
   const [selectedMap, setSelectedMap] = useState("");
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Check file size (limit to 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File size must be less than 5MB");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setScreenshot(e.target?.result as string);
+  // Load match history on mount
+  useEffect(() => {
+    const loadHistory = async () => {
+      const history = await getMatchHistory();
+      setMatchHistory(history);
     };
-    reader.readAsDataURL(file);
-  };
+    loadHistory();
+  }, []);
 
-  const handleRecordMatch = () => {
+  const handleRecordMatch = async () => {
     if (!currentTeams) return;
 
     const score1 = parseInt(team1Score);
@@ -65,7 +56,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
     const winner = score1 > score2 ? 1 : score1 < score2 ? 2 : 0;
 
     // Calculate rating changes
-    const ratings = getPlayerRatings();
+    const ratings = await getPlayerRatings();
     const team1AvgRating =
       currentTeams.team1.reduce((sum, p) => {
         const currentRating = ratings[p.name]?.rating || 0;
@@ -110,28 +101,28 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
       team1Score: score1,
       team2Score: score2,
       winner: winner as 0 | 1 | 2,
-      screenshot: screenshot || undefined,
       mapPlayed: selectedMap || undefined,
       ratingChanges,
     };
 
-    saveMatchResult(match);
-    updatePlayerRatings(match);
-    setMatchHistory(getMatchHistory());
+    await saveMatchResult(match);
+    await updatePlayerRatings(match);
+    const history = await getMatchHistory();
+    setMatchHistory(history);
     onRatingsUpdate();
 
     // Reset form
     setTeam1Score("");
     setTeam2Score("");
-    setScreenshot(null);
     setSelectedMap("");
     setIsRecordDialogOpen(false);
   };
 
-  const handleDeleteMatch = (matchId: string) => {
+  const handleDeleteMatch = async (matchId: string) => {
     if (confirm("Are you sure you want to delete this match?")) {
-      deleteMatch(matchId);
-      setMatchHistory(getMatchHistory());
+      await deleteMatch(matchId);
+      const history = await getMatchHistory();
+      setMatchHistory(history);
     }
   };
 
@@ -204,23 +195,6 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
                         placeholder="e.g., Shoot House"
                       />
                     </Field>
-
-                    <Field label="Screenshot (Optional)">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                      />
-                      {screenshot && (
-                        <div className="mt-2">
-                          <img
-                            src={screenshot}
-                            alt="Match screenshot"
-                            className="max-w-full h-auto rounded border border-gray-600"
-                          />
-                        </div>
-                      )}
-                    </Field>
                   </DialogBody>
                   <DialogFooter>
                     <Button
@@ -291,15 +265,6 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
                           <div className="text-center text-sm text-green-400 font-semibold">
                             Winner: Team {match.winner}
                           </div>
-                        )}
-
-                        {match.screenshot && (
-                          <img
-                            src={match.screenshot}
-                            alt="Match result"
-                            className="w-full h-auto rounded mt-2 cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => window.open(match.screenshot, "_blank")}
-                          />
                         )}
                       </div>
                     </Card.Body>
