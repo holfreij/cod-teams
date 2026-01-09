@@ -1,13 +1,12 @@
-export type PlayerStats = {
-  strength: number;
-  name: string;
-};
+import { PlayerStats } from './types';
 
 export type TeamResults = {
   team1: PlayerStats[];
   team2: PlayerStats[];
   strengthDifference: number;
 };
+
+export type { PlayerStats };
 
 function getCombinations<T>(arr: T[], size: number): T[][] {
   if (size > arr.length) return [];

@@ -9,6 +9,9 @@ import { Slider } from "@/components/ui/slider";
 import { Button, Card, CheckboxGroup, Heading } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
+import { MatchHistory } from "./components/MatchHistory";
+import { PlayerStatsDisplay } from "./components/PlayerStats";
+import { getPlayerRatings } from "./storage";
 
 const playerStats: PlayerStats[] = [
   { strength: 400, name: "Frank" },
@@ -104,11 +107,11 @@ const maps = [
 
 const getBackgroundStyle = (strengthDifference: number) => {
   if (strengthDifference <= 50) {
-    return "bg-green-900";
+    return "bg-gradient-to-r from-green-900 to-green-800 shadow-lg shadow-green-900/50";
   } else if (strengthDifference >= 200) {
-    return "bg-red-900";
+    return "bg-gradient-to-r from-red-900 to-red-800 shadow-lg shadow-red-900/50";
   }
-  return "bg-yellow-700";
+  return "bg-gradient-to-r from-yellow-700 to-yellow-600 shadow-lg shadow-yellow-700/50";
 };
 
 function App() {
@@ -120,20 +123,34 @@ function App() {
   const [buffedPlayers, setBuffedPlayers] = useState<string[]>([]);
   const [nerfedPlayers, setNerfedPlayers] = useState<string[]>([]);
   const [randomMap, setRandomMap] = useState<string | null>(null);
-
   const [unevenTeamsPenalty, setUnevenTeamsPenalty] = useState<number>(0);
-
   const [solutions, setSolutions] = useState<TeamResults[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<{ team1: PlayerStats[]; team2: PlayerStats[] } | null>(null);
+  const [ratingsVersion, setRatingsVersion] = useState(0);
+
+  // Get current player ratings and apply them to base stats
+  const getAdjustedPlayerStats = (): PlayerStats[] => {
+    const ratings = getPlayerRatings();
+    return playerStats.map(player => ({
+      ...player,
+      strength: player.strength + (ratings[player.name]?.rating || 0)
+    }));
+  };
   useEffect(() => {
+    const adjustedStats = getAdjustedPlayerStats();
     setSolutions(
       createBalancedTeams(
-        playerStats.filter((player) => activePlayers.includes(player.name)),
+        adjustedStats.filter((player) => activePlayers.includes(player.name)),
         buffedPlayers,
         nerfedPlayers,
         unevenTeamsPenalty
       )
     );
-  }, [activePlayers, unevenTeamsPenalty, buffedPlayers, nerfedPlayers]);
+  }, [activePlayers, unevenTeamsPenalty, buffedPlayers, nerfedPlayers, ratingsVersion]);
+
+  const handleRatingsUpdate = () => {
+    setRatingsVersion((prev: number) => prev + 1);
+  };
 
   const onActivePlayersChange = (newActivePlayers: string[]) => {
     if (newActivePlayers.length < 4) return;
@@ -146,15 +163,15 @@ function App() {
 
   const handleBuffedPlayersChange = (newBuffedPlayers: string[]) => {
     setBuffedPlayers(newBuffedPlayers);
-    setNerfedPlayers((prev) =>
-      prev.filter((player) => !newBuffedPlayers.includes(player))
+    setNerfedPlayers((prev: string[]) =>
+      prev.filter((player: string) => !newBuffedPlayers.includes(player))
     );
   };
 
   const handleNerfedPlayersChange = (newNerfedPlayers: string[]) => {
     setNerfedPlayers(newNerfedPlayers);
-    setBuffedPlayers((prev) =>
-      prev.filter((player) => !newNerfedPlayers.includes(player))
+    setBuffedPlayers((prev: string[]) =>
+      prev.filter((player: string) => !newNerfedPlayers.includes(player))
     );
   };
 
@@ -181,40 +198,32 @@ function App() {
 
   return (
     <div
-      style={{ padding: 20 }}
-      className="flex flex-col gap-4 items-center justify-center overflow-auto"
+      className="flex flex-col gap-6 items-center justify-center overflow-auto p-4 md:p-8 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
     >
-      <Card.Root>
-        <Card.Body className="flex items-center gap-4 w-80">
-          <Heading>QMG Teams Generator</Heading>
+      <Card.Root className="w-full max-w-4xl shadow-2xl border border-gray-700 transition-all duration-300 hover:shadow-blue-500/20">
+        <Card.Body className="flex items-center justify-center gap-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30">
+          <Heading className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            QMG Teams Generator
+          </Heading>
         </Card.Body>
       </Card.Root>
-      <Card.Root>
-        <Card.Body className="flex items-center gap-4 w-80">
+      <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+        <Card.Body className="flex flex-col items-center gap-4">
           <AccordionRoot
-            className="flex flex-col gap-4 items-center"
+            className="flex flex-col gap-4 items-center w-full"
             collapsible
           >
-            <AccordionItem key="maps" value="maps">
-              <AccordionItemTrigger>Maps</AccordionItemTrigger>
+            <AccordionItem key="maps" value="maps" className="w-full">
+              <AccordionItemTrigger className="text-lg font-semibold">🗺️ Maps</AccordionItemTrigger>
               <AccordionItemContent>
-                <ul className="flex flex-col gap-2">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-2">
                   {maps.map((map) => (
                     <li key={map.name}>
                       <a
                         href={map.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{
-                          color: "#60a5fa",
-                          textDecoration: "underline",
-                        }}
-                        onMouseOver={(e) =>
-                          (e.currentTarget.style.textDecoration = "underline")
-                        }
-                        onMouseOut={(e) =>
-                          (e.currentTarget.style.textDecoration = "underline")
-                        }
+                        className="text-blue-400 hover:text-blue-300 underline transition-all duration-200 hover:scale-105 inline-block"
                       >
                         {map.name}
                       </a>
@@ -224,32 +233,35 @@ function App() {
               </AccordionItemContent>
             </AccordionItem>
             <Button
-              className="mb-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="mb-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 hover:from-blue-500 hover:to-blue-600"
               onClick={() => {
                 const map = maps[Math.floor(Math.random() * maps.length)];
                 setRandomMap(map.name);
               }}
             >
-              Pick Random Map
+              🎲 Pick Random Map
             </Button>
             {randomMap && (
-              <div className="mb-2 text-center text-lg font-semibold">
-                {randomMap}
+              <div className="mb-2 text-center text-lg md:text-xl font-bold text-blue-400 animate-pulse">
+                Selected: {randomMap}
               </div>
             )}
           </AccordionRoot>
         </Card.Body>
       </Card.Root>
-      <Card.Root>
-        <Card.Body className="flex items-center gap-4 w-80">
+      <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+        <Card.Body className="flex flex-col gap-4">
+          <Heading className="text-xl md:text-2xl text-center font-bold text-gray-100">
+            👥 Select Players
+          </Heading>
           <CheckboxGroup
             onValueChange={onActivePlayersChange}
             value={activePlayers}
           >
-            <div className="grid grid-cols-2 gap-4 overflow-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {playerStats.map((item) => (
                 <CheckboxCard
-                  className="w-32"
+                  className="transition-all duration-200 hover:scale-105"
                   label={item.name}
                   key={item.name}
                   value={item.name}
@@ -260,19 +272,22 @@ function App() {
         </Card.Body>
       </Card.Root>
 
-      <Card.Root>
-        <Card.Body className="flex items-center gap-4 w-80">
-          <AccordionRoot multiple>
-            <AccordionItem key={"buff"} value={"buff"}>
-              <AccordionItemTrigger>{"On Fire 🔥"}</AccordionItemTrigger>
+      <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+        <Card.Body className="flex flex-col gap-4">
+          <AccordionRoot multiple className="w-full">
+            <AccordionItem key={"buff"} value={"buff"} className="border-b border-gray-700">
+              <AccordionItemTrigger className="text-lg font-semibold hover:text-orange-400 transition-colors">
+                On Fire 🔥
+              </AccordionItemTrigger>
               <AccordionItemContent>
                 <CheckboxGroup
                   onValueChange={handleBuffedPlayersChange}
                   value={buffedPlayers}
                 >
-                  <div className="grid grid-cols-2 gap-4 overflow-auto">
-                    {activePlayers.map((player) => (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
+                    {activePlayers.map((player: string) => (
                       <CheckboxCard
+                        className="transition-all duration-200 hover:scale-105 hover:border-orange-500"
                         label={player}
                         key={player}
                         value={player}
@@ -284,15 +299,18 @@ function App() {
             </AccordionItem>
 
             <AccordionItem key={"nerf"} value={"nerf"}>
-              <AccordionItemTrigger>{"Noob 💩♟️⚽"}</AccordionItemTrigger>
+              <AccordionItemTrigger className="text-lg font-semibold hover:text-purple-400 transition-colors">
+                Noob 💩♟️⚽
+              </AccordionItemTrigger>
               <AccordionItemContent>
                 <CheckboxGroup
                   onValueChange={handleNerfedPlayersChange}
                   value={nerfedPlayers}
                 >
-                  <div className="grid grid-cols-2 gap-4 overflow-auto">
-                    {activePlayers.map((player) => (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
+                    {activePlayers.map((player: string) => (
                       <CheckboxCard
+                        className="transition-all duration-200 hover:scale-105 hover:border-purple-500"
                         label={player}
                         key={player}
                         value={player}
@@ -306,57 +324,91 @@ function App() {
         </Card.Body>
       </Card.Root>
       {!isNumberOfPlayersEven && (
-        <Card.Root>
-          <Card.Body className="flex items-center gap-4 w-80">
-            <p>Moeilijkheid voor kleine team</p>
-            <div className="flex gap-4 items-center">
-              <p>Moeilijker</p>
+        <Card.Root className="w-full max-w-4xl shadow-xl border border-yellow-700 transition-all duration-300 hover:border-yellow-600 animate-pulse">
+          <Card.Body className="flex flex-col gap-4 bg-gradient-to-r from-yellow-900/20 to-orange-900/20">
+            <p className="text-center font-bold text-lg text-yellow-400">
+              ⚖️ Moeilijkheid voor kleine team
+            </p>
+            <div className="flex gap-2 md:gap-4 items-center justify-center">
+              <p className="text-sm md:text-base font-semibold text-red-400">Moeilijker</p>
               <Slider
-                className="w-26"
+                className="flex-1 max-w-md"
                 min={-500}
                 max={500}
                 step={10}
                 value={[unevenTeamsPenalty]}
-                onValueChange={(newValues) =>
+                onValueChange={(newValues: any) =>
                   setUnevenTeamsPenalty(newValues.value[0])
                 }
               />
-              <p>Makkelijker</p>
+              <p className="text-sm md:text-base font-semibold text-green-400">Makkelijker</p>
             </div>
           </Card.Body>
         </Card.Root>
       )}
       {solutions.length > 0 && (
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-6 w-full max-w-4xl pb-8">
+          <Heading className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
+            ⚔️ Team Matchups
+          </Heading>
           {solutions
-            .sort((a, b) => {
+            .sort((a: TeamResults, b: TeamResults) => {
               if (a.strengthDifference <= b.strengthDifference) return -1;
               return 0;
             })
             .slice(0, 10)
-            .map((match, index) => (
-              <Card.Root key={index} className="w-80">
+            .map((match: TeamResults, index: number) => (
+              <Card.Root
+                key={index}
+                className={`w-full transition-all duration-500 hover:scale-[1.02] cursor-pointer ${
+                  index === 0 ? 'ring-2 ring-green-500 ring-offset-2 ring-offset-gray-900' : ''
+                } ${
+                  selectedTeam?.team1 === match.team1 && selectedTeam?.team2 === match.team2
+                    ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
+                    : ''
+                }`}
+                style={{
+                  animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`
+                }}
+                onClick={() => setSelectedTeam({ team1: match.team1, team2: match.team2 })}
+              >
                 <Card.Body
-                  className={`${getBackgroundStyle(match.strengthDifference)}`}
+                  className={`${getBackgroundStyle(match.strengthDifference)} rounded-lg transition-all duration-300`}
                 >
-                  <div className="flex justify-between gap-2">
-                    <Card.Root className="w-40">
+                  {index === 0 && match.strengthDifference <= 50 && (
+                    <div className="text-center mb-2 text-green-400 font-bold text-sm flex items-center justify-center gap-2">
+                      <span className="text-xl">✨</span>
+                      <span>BEST MATCH</span>
+                      <span className="text-xl">✨</span>
+                    </div>
+                  )}
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-2">
+                    <Card.Root className="w-full sm:flex-1 bg-gray-800/80 backdrop-blur transition-transform duration-300 hover:scale-105">
                       <Card.Body>
-                        <ul className="flex flex-col items-center">
+                        <ul className="flex flex-col items-center gap-1">
                           {match.team1.map((player, i) => (
-                            <li key={i}>{player.name}</li>
+                            <li key={i} className="text-sm md:text-base font-semibold text-gray-100">
+                              {player.name}
+                            </li>
                           ))}
                         </ul>
                       </Card.Body>
                     </Card.Root>
-                    <div className="flex items-center">
-                      {strengthDifferenceIndicator(match)}
+                    <div className="flex flex-col items-center gap-1 px-4">
+                      <div className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
+                        {strengthDifferenceIndicator(match) || "="}
+                      </div>
+                      <div className="text-xs text-gray-300">
+                        Δ {match.strengthDifference}
+                      </div>
                     </div>
-                    <Card.Root className="w-40">
+                    <Card.Root className="w-full sm:flex-1 bg-gray-800/80 backdrop-blur transition-transform duration-300 hover:scale-105">
                       <Card.Body>
-                        <ul className="flex flex-col items-center">
+                        <ul className="flex flex-col items-center gap-1">
                           {match.team2.map((player, i) => (
-                            <li key={i}>{player.name}</li>
+                            <li key={i} className="text-sm md:text-base font-semibold text-gray-100">
+                              {player.name}
+                            </li>
                           ))}
                         </ul>
                       </Card.Body>
@@ -367,6 +419,13 @@ function App() {
             ))}
         </div>
       )}
+
+      <PlayerStatsDisplay />
+
+      <MatchHistory
+        currentTeams={selectedTeam}
+        onRatingsUpdate={handleRatingsUpdate}
+      />
     </div>
   );
 }
