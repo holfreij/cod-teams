@@ -38,10 +38,10 @@ export class ErrorBoundary extends Component<Props, State> {
               <div className="text-center">
                 <div className="text-6xl mb-4">⚠️</div>
                 <Heading className="text-2xl md:text-3xl font-bold text-red-400 mb-2">
-                  Something went wrong
+                  Er is iets misgegaan
                 </Heading>
                 <p className="text-gray-300 mb-4">
-                  The application encountered an unexpected error.
+                  De applicatie is een onverwachte fout tegengekomen.
                 </p>
               </div>
 
@@ -58,18 +58,18 @@ export class ErrorBoundary extends Component<Props, State> {
                   onClick={this.handleReset}
                   className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105"
                 >
-                  🔄 Reload Application
+                  🔄 Herlaad Applicatie
                 </Button>
 
                 <p className="text-xs text-gray-400 text-center">
-                  If this problem persists, try clearing your browser cache or contact support.
+                  Als dit probleem aanhoudt, probeer dan je browsercache te wissen of neem contact op met support.
                 </p>
               </div>
 
               <div className="border-t border-gray-700 pt-4">
                 <p className="text-xs text-gray-500 text-center">
-                  💡 <strong>Tip:</strong> This app stores data locally and in Supabase.
-                  If you're experiencing issues, the app may fall back to local storage automatically.
+                  💡 <strong>Tip:</strong> Deze app slaat data lokaal en in Supabase op.
+                  Bij problemen kan de app automatisch terugvallen op lokale opslag.
                 </p>
               </div>
             </Card.Body>

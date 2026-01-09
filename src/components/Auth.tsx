@@ -13,7 +13,7 @@ export const Auth = () => {
     e.preventDefault();
 
     if (!email) {
-      setMessage('Please enter your email');
+      setMessage('Vul je e-mailadres in');
       return;
     }
 
@@ -25,7 +25,7 @@ export const Auth = () => {
     if (error) {
       setMessage(`Error: ${error.message}`);
     } else {
-      setMessage('Check your email for the magic link!');
+      setMessage('Controleer je e-mail voor de magic link!');
       setEmail('');
     }
 
@@ -46,7 +46,7 @@ export const Auth = () => {
               {user.email?.[0].toUpperCase()}
             </div>
             <div>
-              <p className="text-sm text-gray-400">Signed in as</p>
+              <p className="text-sm text-gray-400">Ingelogd als</p>
               <p className="font-semibold">{user.email}</p>
             </div>
           </div>
@@ -54,7 +54,7 @@ export const Auth = () => {
             onClick={handleSignOut}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
           >
-            Sign Out
+            Uitloggen
           </Button>
         </Card.Body>
       </Card.Root>
