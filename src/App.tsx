@@ -12,13 +12,14 @@ import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { MatchHistory } from "./components/MatchHistory";
 import { PlayerStatsDisplay } from "./components/PlayerStats";
 import { Auth } from "./components/Auth";
-import { getPlayerRatings, getHandicapCoefficient } from "./storage";
+import { getPlayerRatings, getHandicapCoefficient, getPlayers } from "./storage";
 import { useAuth } from "./auth/AuthContext";
 import { useDebounce } from "./hooks/useDebounce";
 
+// Default player list (fallback if Supabase/localStorage is empty)
 // Players now use pure ELO ratings (standard chess-style system)
 // Middle tier (Rick/Rolf) = 1500, Kevin significantly higher as best player
-const playerStats: PlayerStats[] = [
+const DEFAULT_PLAYERS: PlayerStats[] = [
   { strength: 1875, name: "Frank" },
   { strength: 1359, name: "Guido" },
   { strength: 1172, name: "Jan-Joost" },
@@ -121,10 +122,9 @@ const getBackgroundStyle = (strengthDifference: number) => {
 };
 
 function App() {
+  const [playerStats, setPlayerStats] = useState<PlayerStats[]>(DEFAULT_PLAYERS);
   const [activePlayers, setActivePlayers] = useState<string[]>(
-    playerStats.map((player) => {
-      return player.name;
-    })
+    DEFAULT_PLAYERS.map((player) => player.name)
   );
   const [buffedPlayers, setBuffedPlayers] = useState<string[]>([]);
   const [nerfedPlayers, setNerfedPlayers] = useState<string[]>([]);
@@ -145,6 +145,22 @@ function App() {
     if (solutions.length === 0) return false;
     return solutions[0].team1.length !== solutions[0].team2.length;
   }, [solutions]);
+
+  // Load players from storage
+  useEffect(() => {
+    const loadPlayers = async () => {
+      const players = await getPlayers();
+      if (players.length > 0) {
+        const stats: PlayerStats[] = players.map(p => ({
+          name: p.name,
+          strength: p.initialElo,
+        }));
+        setPlayerStats(stats);
+        setActivePlayers(stats.map(p => p.name));
+      }
+    };
+    loadPlayers();
+  }, []);
 
   // Get current player ratings (pure ELO system)
   // If player has played games, use their current rating; otherwise use initial ELO
@@ -358,24 +374,24 @@ function App() {
         <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
           <Card.Body className="flex flex-col gap-4">
             <Heading className="text-center text-lg md:text-xl font-bold text-gray-100">
-              ⚖️ Uneven Team Handicap Adjustment
+              ⚖️ Handicap for Smaller Team
             </Heading>
             <div className="flex flex-col gap-3">
               <div className="flex justify-between items-center text-sm text-gray-300">
-                <span>Current System Coefficient:</span>
+                <span>System Coefficient (Smaller Team):</span>
                 <span className="font-bold text-blue-400">{Math.round(currentCoefficient)}</span>
               </div>
               <div className="flex justify-between items-center text-sm text-gray-300">
-                <span>Manual Offset:</span>
+                <span>Manual Adjustment:</span>
                 <span className="font-bold text-purple-400">{handicapOffset > 0 ? '+' : ''}{handicapOffset}</span>
               </div>
               <div className="flex justify-between items-center text-sm text-gray-300 border-t border-gray-700 pt-2">
-                <span>Total Applied:</span>
+                <span>Total Handicap (Smaller Team):</span>
                 <span className="font-bold text-green-400">{Math.round(currentCoefficient + handicapOffset)}</span>
               </div>
             </div>
             <div className="flex gap-2 md:gap-4 items-center justify-center">
-              <p className="text-sm md:text-base font-semibold text-red-400">Harder</p>
+              <p className="text-sm md:text-base font-semibold text-red-400">Harder for Smaller</p>
               <Slider
                 className="flex-1 max-w-md"
                 min={-200}
@@ -386,10 +402,10 @@ function App() {
                   setHandicapOffset(details.value[0])
                 }
               />
-              <p className="text-sm md:text-base font-semibold text-green-400">Easier</p>
+              <p className="text-sm md:text-base font-semibold text-green-400">Easier for Smaller</p>
             </div>
             <p className="text-xs text-center text-gray-400">
-              Adjust the handicap for the smaller team. Positive values make it easier for them.
+              This handicap applies to the <strong>smaller team</strong>. Higher values give them stronger players to compensate for fewer members.
             </p>
           </Card.Body>
         </Card.Root>

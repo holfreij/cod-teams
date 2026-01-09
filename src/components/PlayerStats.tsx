@@ -5,17 +5,37 @@ import { PlayerRating } from "../types";
 
 export const PlayerStatsDisplay = () => {
   const [playerList, setPlayerList] = useState<PlayerRating[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadRatings = async () => {
+      setLoading(true);
       const ratings = await getPlayerRatings();
       const list = Object.values(ratings);
       // Sort by rating (highest first)
       list.sort((a, b) => b.rating - a.rating);
       setPlayerList(list);
+      setLoading(false);
     };
     loadRatings();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-4xl">
+        <Card.Root className="shadow-xl border border-gray-700">
+          <Card.Body className="flex flex-col gap-4">
+            <Heading className="text-xl md:text-2xl font-bold text-gray-100 text-center">
+              📈 Player Statistics
+            </Heading>
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
+            </div>
+          </Card.Body>
+        </Card.Root>
+      </div>
+    );
+  }
 
   if (playerList.length === 0) {
     return null;

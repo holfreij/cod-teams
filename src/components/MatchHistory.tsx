@@ -31,19 +31,27 @@ interface MatchHistoryProps {
 
 export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProps) => {
   const [matchHistory, setMatchHistory] = useState<MatchResult[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
   const [team1Score, setTeam1Score] = useState("");
   const [team2Score, setTeam2Score] = useState("");
   const [selectedMap, setSelectedMap] = useState("");
+  const [displayCount, setDisplayCount] = useState(50);
 
   // Load match history on mount
   useEffect(() => {
     const loadHistory = async () => {
+      setLoading(true);
       const history = await getMatchHistory();
       setMatchHistory(history);
+      setLoading(false);
     };
     loadHistory();
   }, []);
+
+  const handleLoadMore = () => {
+    setDisplayCount(prev => prev + 50);
+  };
 
   const handleRecordMatch = async () => {
     if (!currentTeams) return;
@@ -159,8 +167,10 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
       );
     }
 
+    setLoading(true);
     const history = await getMatchHistory();
     setMatchHistory(history);
+    setLoading(false);
     onRatingsUpdate();
 
     // Reset form
@@ -172,9 +182,11 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
 
   const handleDeleteMatch = async (matchId: string) => {
     if (confirm("Are you sure you want to delete this match?")) {
+      setLoading(true);
       await deleteMatch(matchId);
       const history = await getMatchHistory();
       setMatchHistory(history);
+      setLoading(false);
     }
   };
 
@@ -262,15 +274,21 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
             )}
           </div>
 
-          {matchHistory.length === 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
+            </div>
+          ) : matchHistory.length === 0 ? (
             <p className="text-gray-400 text-center py-8">
               No matches recorded yet. Play a match and record the results!
             </p>
           ) : (
-            <div className="flex flex-col gap-3 max-h-96 overflow-y-auto">
-              {matchHistory
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .map((match) => (
+            <>
+              <div className="flex flex-col gap-3 max-h-96 overflow-y-auto">
+                {matchHistory
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, displayCount)
+                  .map((match) => (
                   <Card.Root
                     key={match.id}
                     className="bg-gray-800/50 border border-gray-700 hover:border-gray-600 transition-all"
@@ -322,7 +340,16 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
                     </Card.Body>
                   </Card.Root>
                 ))}
-            </div>
+              </div>
+              {matchHistory.length > displayCount && (
+                <Button
+                  onClick={handleLoadMore}
+                  className="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-white"
+                >
+                  Load More ({matchHistory.length - displayCount} remaining)
+                </Button>
+              )}
+            </>
           )}
         </Card.Body>
       </Card.Root>
