@@ -80,6 +80,7 @@ export function createBalancedTeams(
 
     // Apply handicap for uneven teams during team generation
     // This ensures the smaller team gets stronger players to compensate
+    // By subtracting the handicap, the algorithm will give stronger players to the smaller team
     const isUnevenTeams = team1.length !== team2.length;
     if (isUnevenTeams) {
       const smallerSize = Math.min(team1.length, team2.length);
@@ -87,11 +88,12 @@ export function createBalancedTeams(
       const ratio = 1 - (smallerSize / largerSize);
       const handicap = Math.round(handicapCoefficient * ratio);
 
-      // Add handicap to the smaller team's strength
+      // Subtract handicap from the smaller team's strength
+      // This makes the algorithm compensate by assigning stronger players
       if (team1.length < team2.length) {
-        team1Strength += handicap;
+        team1Strength -= handicap;
       } else {
-        team2Strength += handicap;
+        team2Strength -= handicap;
       }
     }
 
