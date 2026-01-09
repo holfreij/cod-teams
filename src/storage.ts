@@ -258,7 +258,8 @@ export const updateHandicapCoefficient = async (newCoefficient: number): Promise
 };
 
 // Calculate handicap for uneven teams
-// Returns ELO points to add to smaller team's rating
+// Returns ELO points to SUBTRACT from smaller team's rating/strength
+// This compensates for their player count disadvantage
 export const calculateUnevenTeamHandicap = (
   smallerTeamSize: number,
   largerTeamSize: number,
@@ -300,8 +301,8 @@ export const adjustHandicapCoefficient = async (
 
 // Calculate rating change based on ELO system
 // Using standard k-factor of 32 for active players
+// Note: Individual player rating isn't used; only team averages matter for fair team-based ELO
 export const calculateRatingChange = (
-  _playerRating: number,
   teamAvgRating: number,
   opponentAvgRating: number,
   won: boolean,
@@ -313,23 +314,23 @@ export const calculateRatingChange = (
 };
 
 // Export/Import functions for backup
-export const exportData = (): string => {
+export const exportData = async (): Promise<string> => {
   const data = {
-    matchHistory: getMatchHistory(),
-    playerRatings: getPlayerRatings(),
+    matchHistory: await getMatchHistory(),
+    playerRatings: await getPlayerRatings(),
     exportDate: new Date(),
   };
   return JSON.stringify(data, null, 2);
 };
 
-export const importData = (jsonString: string): boolean => {
+export const importData = async (jsonString: string): Promise<boolean> => {
   try {
     const data = JSON.parse(jsonString);
     if (data.matchHistory) {
-      localStorage.setItem(MATCH_HISTORY_KEY, JSON.stringify(data.matchHistory));
+      await saveMatchResult(data.matchHistory);
     }
     if (data.playerRatings) {
-      localStorage.setItem(PLAYER_RATINGS_KEY, JSON.stringify(data.playerRatings));
+      await savePlayerRatings(data.playerRatings);
     }
     return true;
   } catch {
