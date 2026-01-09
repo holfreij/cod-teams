@@ -35,7 +35,7 @@ const isSupabaseConfigured = () => {
 export const saveMatchResult = async (match: MatchResult): Promise<void> => {
   if (isSupabaseConfigured()) {
     try {
-      await supabase.from('match_history').insert({
+      const { error } = await supabase.from('match_history').insert({
         id: match.id,
         date: match.date.toISOString(),
         team1_players: match.team1.map(p => p.name),
@@ -46,6 +46,7 @@ export const saveMatchResult = async (match: MatchResult): Promise<void> => {
         map_played: match.mapPlayed || null,
         rating_changes: match.ratingChanges,
       });
+      if (error) throw error;
       return;
     } catch (error) {
       console.error('Error saving to Supabase, falling back to localStorage:', error);
@@ -102,10 +103,11 @@ export const getMatchHistory = async (): Promise<MatchResult[]> => {
 export const clearMatchHistory = async (): Promise<void> => {
   if (isSupabaseConfigured()) {
     try {
-      await supabase.from('match_history').delete().neq('id', '');
+      const { error } = await supabase.from('match_history').delete().neq('id', '');
+      if (error) throw error;
       return;
     } catch (error) {
-      console.error('Error clearing Supabase data:', error);
+      console.error('Error clearing Supabase data, falling back to localStorage:', error);
     }
   }
 
@@ -115,10 +117,11 @@ export const clearMatchHistory = async (): Promise<void> => {
 export const deleteMatch = async (matchId: string): Promise<void> => {
   if (isSupabaseConfigured()) {
     try {
-      await supabase.from('match_history').delete().eq('id', matchId);
+      const { error } = await supabase.from('match_history').delete().eq('id', matchId);
+      if (error) throw error;
       return;
     } catch (error) {
-      console.error('Error deleting from Supabase:', error);
+      console.error('Error deleting from Supabase, falling back to localStorage:', error);
     }
   }
 
@@ -177,12 +180,13 @@ export const savePlayerRatings = async (ratings: { [playerName: string]: PlayerR
         games_played: rating.gamesPlayed,
       }));
 
-      await supabase.from('player_ratings').upsert(ratingsArray, {
+      const { error } = await supabase.from('player_ratings').upsert(ratingsArray, {
         onConflict: 'name',
       });
+      if (error) throw error;
       return;
     } catch (error) {
-      console.error('Error saving ratings to Supabase:', error);
+      console.error('Error saving ratings to Supabase, falling back to localStorage:', error);
     }
   }
 
@@ -228,10 +232,11 @@ export const updatePlayerRatings = async (match: MatchResult): Promise<void> => 
 export const resetPlayerRatings = async (): Promise<void> => {
   if (isSupabaseConfigured()) {
     try {
-      await supabase.from('player_ratings').delete().neq('name', '');
+      const { error } = await supabase.from('player_ratings').delete().neq('name', '');
+      if (error) throw error;
       return;
     } catch (error) {
-      console.error('Error resetting ratings in Supabase:', error);
+      console.error('Error resetting ratings in Supabase, falling back to localStorage:', error);
     }
   }
 
@@ -266,13 +271,14 @@ export const getHandicapCoefficient = async (): Promise<number> => {
 export const updateHandicapCoefficient = async (newCoefficient: number): Promise<void> => {
   if (isSupabaseConfigured()) {
     try {
-      await supabase.from('settings').upsert({
+      const { error } = await supabase.from('settings').upsert({
         key: HANDICAP_COEFFICIENT_KEY,
         value: newCoefficient,
       });
+      if (error) throw error;
       return;
     } catch (error) {
-      console.error('Error updating handicap coefficient in Supabase:', error);
+      console.error('Error updating handicap coefficient in Supabase, falling back to localStorage:', error);
     }
   }
 
