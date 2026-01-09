@@ -67,7 +67,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps }: MatchHisto
     const score1 = parseInt(team1Score);
     const score2 = parseInt(team2Score);
 
-    // Validate scores
+    // Validate scores: one team must score 10 (winner), other team 0-9
     if (isNaN(score1) || isNaN(score2)) {
       alert("Please enter valid scores");
       return;
@@ -76,8 +76,14 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps }: MatchHisto
       alert("Scores cannot be negative");
       return;
     }
-    if (score1 > 100 || score2 > 100) {
-      alert("Scores seem unrealistic (max 100)");
+    const hasWinner = score1 === 10 || score2 === 10;
+    const loserScore = score1 === 10 ? score2 : score1;
+    if (!hasWinner) {
+      alert("One team must score exactly 10 to win");
+      return;
+    }
+    if (loserScore < 0 || loserScore > 9) {
+      alert("Losing team's score must be between 0 and 9");
       return;
     }
 
@@ -264,11 +270,18 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps }: MatchHisto
                       <select
                         value={selectedMap}
                         onChange={(e) => setSelectedMap(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full h-10 px-3 bg-transparent border border-gray-600 rounded-lg text-white appearance-none cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239CA3AF'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 0.75rem center',
+                          backgroundSize: '1rem',
+                          paddingRight: '2.5rem'
+                        }}
                       >
-                        <option value="">Select a map...</option>
+                        <option value="" className="bg-gray-800">Select a map...</option>
                         {maps.map((map) => (
-                          <option key={map.name} value={map.name}>
+                          <option key={map.name} value={map.name} className="bg-gray-800">
                             {map.name}
                           </option>
                         ))}
