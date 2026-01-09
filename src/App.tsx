@@ -11,7 +11,6 @@ import { useEffect, useState, useMemo } from "react";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { MatchHistory } from "./components/MatchHistory";
 import { PlayerStatsDisplay } from "./components/PlayerStats";
-import { SystemInfo } from "./components/SystemInfo";
 import { Auth } from "./components/Auth";
 import { getPlayerRatings, getHandicapCoefficient } from "./storage";
 import { useAuth } from "./auth/AuthContext";
@@ -223,7 +222,7 @@ function App() {
 
   return (
     <div
-      className="flex flex-col gap-6 items-center justify-center overflow-auto p-4 md:p-8 py-8 md:py-12 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+      className="flex flex-col gap-6 items-center justify-center overflow-auto px-4 md:px-8 py-8 md:py-12 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
     >
       <Card.Root className="w-full max-w-4xl shadow-2xl border border-gray-700 transition-all duration-300 hover:shadow-blue-500/20">
         <Card.Body className="flex items-center justify-center gap-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30">
@@ -456,8 +455,6 @@ function App() {
       )}
 
       <Auth />
-
-      <SystemInfo version={ratingsVersion} />
 
       <PlayerStatsDisplay />
 
