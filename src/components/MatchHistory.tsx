@@ -85,21 +85,21 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
 
     // Validate scores: one team must score 10 (winner), other team 0-9
     if (isNaN(score1) || isNaN(score2)) {
-      alert("Please enter valid scores");
+      alert("Vul geldige scores in");
       return;
     }
     if (score1 < 0 || score2 < 0) {
-      alert("Scores cannot be negative");
+      alert("Scores kunnen niet negatief zijn");
       return;
     }
     const hasWinner = score1 === 10 || score2 === 10;
     const loserScore = score1 === 10 ? score2 : score1;
     if (!hasWinner) {
-      alert("One team must score exactly 10 to win");
+      alert("Één team moet precies 10 scoren om te winnen");
       return;
     }
     if (loserScore < 0 || loserScore > 9) {
-      alert("Losing team's score must be between 0 and 9");
+      alert("Score van verliezend team moet tussen 0 en 9 zijn");
       return;
     }
 
@@ -211,7 +211,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
   };
 
   const handleDeleteMatch = async (matchId: string) => {
-    if (confirm("Are you sure you want to delete this match?")) {
+    if (confirm("Weet je zeker dat je deze wedstrijd wilt verwijderen?")) {
       setLoading(true);
       await deleteMatch(matchId);
       const history = await getMatchHistory();
@@ -264,7 +264,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <Field label="Team 1 Score">
+                      <Field label="Score Team 1">
                         <Input
                           type="number"
                           value={team1Score}
@@ -272,7 +272,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
                           placeholder="0"
                         />
                       </Field>
-                      <Field label="Team 2 Score">
+                      <Field label="Score Team 2">
                         <Input
                           type="number"
                           value={team2Score}
