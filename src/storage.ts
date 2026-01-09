@@ -4,6 +4,28 @@ import { supabase } from './supabaseClient';
 const MATCH_HISTORY_KEY = 'qmg_match_history';
 const PLAYER_RATINGS_KEY = 'qmg_player_ratings';
 
+// Supabase row types
+interface SupabaseMatchRow {
+  id: string;
+  date: string;
+  team1_players: string[];
+  team2_players: string[];
+  team1_score: number;
+  team2_score: number;
+  winner: number;
+  map_played: string | null;
+  rating_changes: Record<string, number>;
+}
+
+interface SupabasePlayerRatingRow {
+  name: string;
+  rating: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  games_played: number;
+}
+
 // Check if Supabase is configured
 const isSupabaseConfigured = () => {
   return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
@@ -46,15 +68,15 @@ export const getMatchHistory = async (): Promise<MatchResult[]> => {
 
       if (error) throw error;
 
-      return (data || []).map((row: any) => ({
+      return (data || []).map((row: SupabaseMatchRow) => ({
         id: row.id,
         date: new Date(row.date),
         team1: row.team1_players.map((name: string) => ({ name, strength: 0 })),
         team2: row.team2_players.map((name: string) => ({ name, strength: 0 })),
         team1Score: row.team1_score,
         team2Score: row.team2_score,
-        winner: row.winner,
-        mapPlayed: row.map_played,
+        winner: row.winner as 0 | 1 | 2,
+        mapPlayed: row.map_played || undefined,
         ratingChanges: row.rating_changes,
       }));
     } catch (error) {
@@ -67,8 +89,8 @@ export const getMatchHistory = async (): Promise<MatchResult[]> => {
   if (!data) return [];
 
   try {
-    const parsed = JSON.parse(data);
-    return parsed.map((match: any) => ({
+    const parsed: MatchResult[] = JSON.parse(data);
+    return parsed.map((match) => ({
       ...match,
       date: new Date(match.date),
     }));
@@ -115,8 +137,8 @@ export const getPlayerRatings = async (): Promise<{ [playerName: string]: Player
 
       if (error) throw error;
 
-      const ratings: { [playerName: string]: PlayerRating } = {};
-      (data || []).forEach((row: any) => {
+      const ratings: Record<string, PlayerRating> = {};
+      (data || []).forEach((row: SupabasePlayerRatingRow) => {
         ratings[row.name] = {
           name: row.name,
           rating: row.rating,
