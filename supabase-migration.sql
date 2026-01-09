@@ -27,6 +27,20 @@ CREATE TABLE IF NOT EXISTS match_history (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create settings table for global configuration
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Insert default uneven team handicap coefficient
+-- This represents ELO points added per full player disadvantage
+-- Example: 2v3 gets coefficient * (1 - 2/3) = coefficient * 0.33
+INSERT INTO settings (key, value)
+VALUES ('uneven_team_coefficient', '300'::jsonb)
+ON CONFLICT (key) DO NOTHING;
+
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_player_ratings_name ON player_ratings(name);
 CREATE INDEX IF NOT EXISTS idx_match_history_date ON match_history(date DESC);
@@ -34,6 +48,7 @@ CREATE INDEX IF NOT EXISTS idx_match_history_date ON match_history(date DESC);
 -- Enable Row Level Security (RLS) for security
 ALTER TABLE player_ratings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE match_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
 -- Create policies to allow authenticated users only
 -- Public read access for viewing, but write operations require authentication
@@ -62,6 +77,15 @@ CREATE POLICY "Allow authenticated insert on match_history"
 
 CREATE POLICY "Allow authenticated delete on match_history"
   ON match_history FOR DELETE
+  USING (auth.role() = 'authenticated');
+
+-- Settings Policies
+CREATE POLICY "Allow public read access on settings"
+  ON settings FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow authenticated update on settings"
+  ON settings FOR UPDATE
   USING (auth.role() = 'authenticated');
 
 -- Optional: Create a function to update the updated_at timestamp
