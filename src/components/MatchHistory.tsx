@@ -55,25 +55,28 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
 
     const winner = score1 > score2 ? 1 : score1 < score2 ? 2 : 0;
 
-    // Calculate rating changes
+    // Calculate rating changes using pure ELO
     const ratings = await getPlayerRatings();
+
+    // Helper to get current ELO (stored rating or initial strength)
+    const getCurrentRating = (playerName: string, initialStrength: number) =>
+      ratings[playerName]?.rating ?? initialStrength;
+
     const team1AvgRating =
       currentTeams.team1.reduce((sum, p) => {
-        const currentRating = ratings[p.name]?.rating || 0;
-        return sum + p.strength + currentRating;
+        return sum + getCurrentRating(p.name, p.strength);
       }, 0) / currentTeams.team1.length;
 
     const team2AvgRating =
       currentTeams.team2.reduce((sum, p) => {
-        const currentRating = ratings[p.name]?.rating || 0;
-        return sum + p.strength + currentRating;
+        return sum + getCurrentRating(p.name, p.strength);
       }, 0) / currentTeams.team2.length;
 
     const ratingChanges: { [playerName: string]: number } = {};
 
     // Calculate changes for team 1
     currentTeams.team1.forEach((player) => {
-      const playerCurrentRating = (ratings[player.name]?.rating || 0) + player.strength;
+      const playerCurrentRating = getCurrentRating(player.name, player.strength);
       ratingChanges[player.name] = calculateRatingChange(
         playerCurrentRating,
         team1AvgRating,
@@ -84,7 +87,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate }: MatchHistoryProp
 
     // Calculate changes for team 2
     currentTeams.team2.forEach((player) => {
-      const playerCurrentRating = (ratings[player.name]?.rating || 0) + player.strength;
+      const playerCurrentRating = getCurrentRating(player.name, player.strength);
       ratingChanges[player.name] = calculateRatingChange(
         playerCurrentRating,
         team2AvgRating,
