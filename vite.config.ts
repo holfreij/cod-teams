@@ -5,6 +5,6 @@ import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/cod-teams/",
+  base: process.env.VITE_BASE_PATH || "/cod-teams/",
   plugins: [tailwindcss(), tsconfigPaths(), react()],
 });
