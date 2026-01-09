@@ -11,7 +11,6 @@ export interface MatchResult {
   team1Score: number;
   team2Score: number;
   winner: 1 | 2 | 0; // 0 = draw
-  screenshot?: string; // base64 encoded image
   mapPlayed?: string;
   ratingChanges: { [playerName: string]: number };
 }
