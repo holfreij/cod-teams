@@ -310,22 +310,17 @@ export const calculateUnevenTeamHandicap = (
 };
 
 // Update handicap coefficient based on match outcome
-// If smaller team wins more than expected, reduce coefficient
-// If smaller team loses more than expected, increase coefficient
+// If smaller team wins, reduce coefficient (handicap is too generous)
+// If smaller team loses, increase coefficient (handicap is not enough)
 export const adjustHandicapCoefficient = async (
   currentCoefficient: number,
-  smallerTeamWon: boolean,
-  expectedWinProbability: number
+  smallerTeamWon: boolean
 ): Promise<number> => {
-  // Learning rate: how quickly we adjust the coefficient
-  const learningRate = 20;
+  // Fixed adjustment amount per match
+  const adjustmentAmount = 20;
 
-  const actualOutcome = smallerTeamWon ? 1 : 0;
-  const error = actualOutcome - expectedWinProbability;
-
-  // If smaller team won when they shouldn't have, reduce handicap
-  // If smaller team lost when they should have won, increase handicap
-  const adjustment = -error * learningRate;
+  // If smaller team won, decrease coefficient; if they lost, increase it
+  const adjustment = smallerTeamWon ? -adjustmentAmount : adjustmentAmount;
 
   const newCoefficient = Math.max(0, Math.min(3000, currentCoefficient + adjustment));
   await updateHandicapCoefficient(newCoefficient);
