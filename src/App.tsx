@@ -450,10 +450,18 @@ function App() {
         </Card.Root>
       )}
       {isCalculatingTeams ? (
-        <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700">
-          <Card.Body className="flex flex-col items-center gap-4 py-12">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-400"></div>
-            <p className="text-lg text-gray-300 font-semibold">Berekenen van teams...</p>
+        <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 bg-gradient-to-br from-gray-800/50 to-gray-900/50">
+          <Card.Body className="flex flex-col items-center justify-center gap-6 py-16">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-20 w-20 border-4 border-gray-700 border-t-green-400"></div>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="animate-pulse w-10 h-10 rounded-full bg-green-400/20"></div>
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-xl text-gray-200 font-bold mb-1">Berekenen van teams...</p>
+              <p className="text-sm text-gray-400">Een moment geduld</p>
+            </div>
           </Card.Body>
         </Card.Root>
       ) : solutions.length > 0 && (
