@@ -77,7 +77,8 @@ export function createBalancedTeams(
   players: PlayerStats[],
   buffedPlayers: string[],
   nerfedPlayers: string[],
-  handicapCoefficient: number
+  handicapCoefficient: number,
+  maxResults: number = 100 // Limit results for better performance
 ): TeamResults[] {
   // Apply temporary rating adjustments for "on fire" or "noob" players
   // These are small temporary boosts/penalties (±50 ELO) for current session
@@ -232,10 +233,19 @@ export function createBalancedTeams(
       team2,
       strengthDifference: strengthDifference, // Lower = more balanced
     });
+
+    // Performance optimization: periodically prune results to keep only top N
+    // This reduces memory usage and speeds up subsequent iterations
+    if (teamCombinations.length >= maxResults * 2) {
+      teamCombinations.sort((a, b) => a.strengthDifference - b.strengthDifference);
+      teamCombinations.splice(maxResults); // Keep only top N
+    }
   }
 
-  // Return all combinations
-  // The caller (App.tsx) will sort these by strengthDifference and display
-  // the most balanced options first (lowest strengthDifference = best match)
-  return teamCombinations;
+  // Sort by balance quality and return top results
+  // Lower strengthDifference = more balanced teams
+  teamCombinations.sort((a, b) => a.strengthDifference - b.strengthDifference);
+
+  // Return only the top results to reduce memory usage and improve performance
+  return teamCombinations.slice(0, maxResults);
 }
