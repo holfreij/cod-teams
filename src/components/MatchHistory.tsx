@@ -20,7 +20,6 @@ import {
   calculateRatingChange,
   getPlayerRatings,
   getHandicapCoefficient,
-  calculateUnevenTeamHandicap,
   adjustHandicapCoefficient,
 } from "../storage";
 import { Field } from "@/components/ui/field";
@@ -122,31 +121,10 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
         return sum + getCurrentRating(p.name, p.strength);
       }, 0) / currentTeams.team2.length;
 
-    // Apply handicap for uneven teams
-    // IMPORTANT: Handicap is SUBTRACTED from smaller team's rating
-    // Rationale: The smaller team already has stronger players (assigned by the algorithm)
-    // to compensate for the player count disadvantage. By subtracting the handicap here,
-    // we account for that disadvantage in the ELO calculation, ensuring fair rating changes.
+    // Track team sizes for handicap coefficient adjustment
     const team1Size = currentTeams.team1.length;
     const team2Size = currentTeams.team2.length;
     const isUnevenMatch = team1Size !== team2Size;
-    let handicapApplied = 0;
-    let coefficient = 0;
-
-    if (isUnevenMatch) {
-      coefficient = await getHandicapCoefficient();
-      const smallerSize = Math.min(team1Size, team2Size);
-      const largerSize = Math.max(team1Size, team2Size);
-      handicapApplied = calculateUnevenTeamHandicap(smallerSize, largerSize, coefficient);
-
-      // Subtract handicap from smaller team's rating (not add!)
-      // This represents their player count disadvantage
-      if (team1Size < team2Size) {
-        team1AvgRating -= handicapApplied;
-      } else {
-        team2AvgRating -= handicapApplied;
-      }
-    }
 
     const ratingChanges: { [playerName: string]: number } = {};
 
@@ -185,16 +163,11 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
 
     // Adjust handicap coefficient based on match outcome (for uneven matches)
     if (isUnevenMatch) {
-      const expectedWinProb = 1 / (1 + Math.pow(10, (team2AvgRating - team1AvgRating) / 400));
+      const coefficient = await getHandicapCoefficient();
       const smallerTeamIsTeam1 = team1Size < team2Size;
       const smallerTeamWon = smallerTeamIsTeam1 ? (winner === 1) : (winner === 2);
 
-      // Use cached coefficient value from earlier to avoid race conditions
-      await adjustHandicapCoefficient(
-        coefficient,
-        smallerTeamWon,
-        smallerTeamIsTeam1 ? expectedWinProb : (1 - expectedWinProb)
-      );
+      await adjustHandicapCoefficient(coefficient, smallerTeamWon);
     }
 
     setLoading(true);
