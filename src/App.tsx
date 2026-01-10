@@ -142,6 +142,7 @@ function App() {
   const [currentCoefficient, setCurrentCoefficient] = useState<number>(300);
   const [adjustedPlayerStats, setAdjustedPlayerStats] = useState<PlayerStats[]>([]);
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
+  const [isCalculatingTeams, setIsCalculatingTeams] = useState(false);
 
   const { user } = useAuth();
 
@@ -175,13 +176,16 @@ function App() {
 
   // Get current player ratings (pure ELO system)
   // If player has played games, use their current rating; otherwise use initial ELO
-  const getAdjustedPlayerStats = async (): Promise<PlayerStats[]> => {
-    const ratings = await getPlayerRatings();
-    return playerStats.map(player => ({
-      ...player,
-      strength: ratings[player.name]?.rating ?? player.strength
-    }));
-  };
+  // Memoized to avoid redundant async calls during rapid state changes
+  const getAdjustedPlayerStats = useMemo(() => {
+    return async (): Promise<PlayerStats[]> => {
+      const ratings = await getPlayerRatings();
+      return playerStats.map(player => ({
+        ...player,
+        strength: ratings[player.name]?.rating ?? player.strength
+      }));
+    };
+  }, [playerStats, ratingsVersion]);
 
   // Load adjusted player stats for display
   useEffect(() => {
@@ -203,16 +207,22 @@ function App() {
 
   useEffect(() => {
     const updateSolutions = async () => {
+      // Clear current teams and show loading state
+      setIsCalculatingTeams(true);
+      setSolutions([]);
+      setSelectedTeam(null);
+
       const adjustedStats = await getAdjustedPlayerStats();
       const totalHandicap = currentCoefficient * (1 + debouncedHandicapOffset / 100);
-      setSolutions(
-        createBalancedTeams(
-          adjustedStats.filter((player) => debouncedActivePlayers.includes(player.name)),
-          buffedPlayers,
-          nerfedPlayers,
-          totalHandicap
-        )
+      const newSolutions = createBalancedTeams(
+        adjustedStats.filter((player) => debouncedActivePlayers.includes(player.name)),
+        buffedPlayers,
+        nerfedPlayers,
+        totalHandicap
       );
+
+      setSolutions(newSolutions);
+      setIsCalculatingTeams(false);
     };
     updateSolutions();
   }, [debouncedActivePlayers, buffedPlayers, nerfedPlayers, ratingsVersion, currentCoefficient, debouncedHandicapOffset, getAdjustedPlayerStats]);
@@ -435,16 +445,19 @@ function App() {
           </Card.Body>
         </Card.Root>
       )}
-      {solutions.length > 0 && (
+      {isCalculatingTeams ? (
+        <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700">
+          <Card.Body className="flex flex-col items-center gap-4 py-12">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-400"></div>
+            <p className="text-lg text-gray-300 font-semibold">Berekenen van teams...</p>
+          </Card.Body>
+        </Card.Root>
+      ) : solutions.length > 0 && (
         <div className="flex flex-col items-center gap-6 w-full max-w-4xl pb-8">
           <Heading className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
             ⚔️ Teams
           </Heading>
           {solutions
-            .sort((a: TeamResults, b: TeamResults) => {
-              if (a.strengthDifference <= b.strengthDifference) return -1;
-              return 0;
-            })
             .slice(0, 10)
             .map((match: TeamResults, index: number) => (
               <Card.Root
