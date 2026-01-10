@@ -207,10 +207,12 @@ function App() {
 
   useEffect(() => {
     const updateSolutions = async () => {
-      // Clear current teams and show loading state
-      setIsCalculatingTeams(true);
-      setSolutions([]);
-      setSelectedTeam(null);
+      // Only show loading state if calculation takes longer than 300ms
+      const loadingTimeout = setTimeout(() => {
+        setIsCalculatingTeams(true);
+        setSolutions([]);
+        setSelectedTeam(null);
+      }, 300);
 
       const adjustedStats = await getAdjustedPlayerStats();
       const totalHandicap = currentCoefficient * (1 + debouncedHandicapOffset / 100);
@@ -221,6 +223,8 @@ function App() {
         totalHandicap
       );
 
+      // Calculation finished - cancel loading state timeout if it hasn't fired yet
+      clearTimeout(loadingTimeout);
       setSolutions(newSolutions);
       setIsCalculatingTeams(false);
     };
