@@ -199,36 +199,36 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
 
   return (
     <div className="w-full max-w-4xl">
-      <Card.Root className="shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+      <Card.Root className="shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
         <Card.Body className="flex flex-col gap-4">
           <div className="flex justify-between items-center">
-            <Heading className="text-xl md:text-2xl font-bold text-gray-100">
+            <Heading className="text-xl md:text-2xl font-display font-bold text-cyber-cyan">
               📊 Geschiedenis
             </Heading>
             {currentTeams && (
               <DialogRoot open={isRecordDialogOpen} onOpenChange={(e) => handleDialogOpenChange(e.open)}>
                 <DialogTrigger asChild>
-                  <Button className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-green-500/50 transition-all duration-300 hover:scale-105">
+                  <Button className="cyber-btn-primary px-4 py-2 rounded-lg shadow-lg hover:shadow-neon-cyan transition-all duration-300 hover:scale-105">
                     📝 Registreer uitslag
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-gray-800 border border-gray-700">
+                <DialogContent className="glass-card border-cyber-cyan/30">
                   <DialogHeader>
-                    <DialogTitle className="text-xl font-bold">Registreer wedstrijd uitslag</DialogTitle>
+                    <DialogTitle className="text-xl font-display font-bold text-cyber-cyan">Registreer wedstrijd uitslag</DialogTitle>
                   </DialogHeader>
                   <DialogBody className="flex flex-col gap-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="font-semibold mb-2">Team 1</p>
-                        <ul className="text-sm">
+                        <p className="font-display font-semibold mb-2 text-cyber-cyan">Team 1</p>
+                        <ul className="text-sm text-cyber-cyan/80">
                           {currentTeams.team1.map((p) => (
                             <li key={p.name}>{p.name}</li>
                           ))}
                         </ul>
                       </div>
                       <div>
-                        <p className="font-semibold mb-2">Team 2</p>
-                        <ul className="text-sm">
+                        <p className="font-display font-semibold mb-2 text-cyber-pink">Team 2</p>
+                        <ul className="text-sm text-cyber-pink/80">
                           {currentTeams.team2.map((p) => (
                             <li key={p.name}>{p.name}</li>
                           ))}
@@ -280,7 +280,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
                   <DialogFooter>
                     <Button
                       onClick={handleRecordMatch}
-                      className="bg-green-600 hover:bg-green-700 text-white"
+                      className="cyber-btn-primary px-4 py-2 rounded-lg hover:shadow-neon-cyan transition-all"
                     >
                       Registreer uitslag
                     </Button>
@@ -293,7 +293,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
 
           {loading ? (
             <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyber-cyan"></div>
             </div>
           ) : matchHistory.length === 0 ? (
             <p className="text-gray-400 text-center py-8">
@@ -308,14 +308,14 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
                   .map((match) => (
                   <Card.Root
                     key={match.id}
-                    className="bg-gray-800/50 border border-gray-700 hover:border-gray-600 transition-all"
+                    className="glass-card hover:border-cyber-cyan/30 transition-all"
                   >
                     <Card.Body>
                       <div className="flex flex-col gap-2">
                         <div className="flex justify-between items-start">
-                          <div className="text-xs text-gray-400">
-                            {formatDate(match.date)}
-                            {match.mapPlayed && ` • ${match.mapPlayed}`}
+                          <div className="text-xs text-gray-500">
+                            <span className="text-cyber-pink/60">{formatDate(match.date)}</span>
+                            {match.mapPlayed && <span className="text-cyber-cyan/60"> • {match.mapPlayed}</span>}
                           </div>
                           {user && (
                             <Button
@@ -330,21 +330,21 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
 
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex-1">
-                            <div className="text-sm font-semibold mb-1">
+                            <div className="text-sm font-semibold mb-1 text-cyber-cyan">
                               {match.team1.map((p) => p.name).join(", ")}
                             </div>
-                            <div className="text-2xl font-bold">
+                            <div className={`text-2xl font-display font-bold ${match.winner === 1 ? 'text-green-400' : match.winner === 2 ? 'text-cyber-pink' : 'text-yellow-400'}`}>
                               {match.team1Score}
                             </div>
                           </div>
 
-                          <div className="text-xl font-bold text-gray-500">VS</div>
+                          <div className="text-xl font-display font-bold text-cyber-pink">VS</div>
 
                           <div className="flex-1 text-right">
-                            <div className="text-sm font-semibold mb-1">
+                            <div className="text-sm font-semibold mb-1 text-cyber-cyan">
                               {match.team2.map((p) => p.name).join(", ")}
                             </div>
-                            <div className="text-2xl font-bold">
+                            <div className={`text-2xl font-display font-bold ${match.winner === 2 ? 'text-green-400' : match.winner === 1 ? 'text-cyber-pink' : 'text-yellow-400'}`}>
                               {match.team2Score}
                             </div>
                           </div>
@@ -357,7 +357,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
               {matchHistory.length > displayCount && (
                 <Button
                   onClick={handleLoadMore}
-                  className="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-white"
+                  className="w-full mt-2 bg-cyber-dark-secondary hover:bg-cyber-dark border border-cyber-cyan/30 text-cyber-cyan font-display hover:shadow-neon-cyan/50 transition-all"
                 >
                   Laad meer ({matchHistory.length - displayCount} resterend)
                 </Button>
