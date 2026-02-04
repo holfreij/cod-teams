@@ -23,13 +23,13 @@ export const PlayerStatsDisplay = () => {
   if (loading) {
     return (
       <div className="w-full max-w-4xl">
-        <Card.Root className="shadow-xl border border-gray-700">
+        <Card.Root className="shadow-xl glass-card">
           <Card.Body className="flex flex-col gap-4">
-            <Heading className="text-xl md:text-2xl font-bold text-gray-100 text-center">
+            <Heading className="text-xl md:text-2xl font-display font-bold text-cyber-cyan text-center">
               📈 Statistieken
             </Heading>
             <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyber-cyan"></div>
             </div>
           </Card.Body>
         </Card.Root>
@@ -43,23 +43,23 @@ export const PlayerStatsDisplay = () => {
 
   return (
     <div className="w-full max-w-4xl">
-      <Card.Root className="shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+      <Card.Root className="shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
         <Card.Body className="flex flex-col gap-4">
-          <Heading className="text-xl md:text-2xl font-bold text-gray-100 text-center">
+          <Heading className="text-xl md:text-2xl font-display font-bold text-cyber-cyan text-center">
             📈 Statistieken
           </Heading>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="text-left py-2 px-2">Speler</th>
-                  <th className="text-center py-2 px-2">Rating</th>
-                  <th className="text-center py-2 px-2">Gespeeld</th>
-                  <th className="text-center py-2 px-2">W</th>
-                  <th className="text-center py-2 px-2">L</th>
-                  <th className="text-center py-2 px-2">D</th>
-                  <th className="text-center py-2 px-2">Win %</th>
+                <tr className="border-b border-cyber-cyan/30">
+                  <th className="text-left py-2 px-2 text-cyber-cyan font-display">Speler</th>
+                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">Rating</th>
+                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">Gespeeld</th>
+                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">W</th>
+                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">L</th>
+                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">D</th>
+                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">Win %</th>
                 </tr>
               </thead>
               <tbody>
@@ -78,16 +78,16 @@ export const PlayerStatsDisplay = () => {
                   return (
                     <tr
                       key={player.name}
-                      className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
+                      className="border-b border-cyber-dark-secondary hover:bg-cyber-dark-secondary/50 transition-colors"
                     >
-                      <td className="py-2 px-2 font-semibold">{player.name}</td>
+                      <td className="py-2 px-2 font-semibold text-cyber-cyan">{player.name}</td>
                       <td className={`py-2 px-2 text-center font-bold ${getRatingColor(player.rating)}`}>
                         {player.rating > 0 ? "+" : ""}
                         {player.rating}
                       </td>
                       <td className="py-2 px-2 text-center">{player.gamesPlayed}</td>
-                      <td className="py-2 px-2 text-center text-green-400">{player.wins}</td>
-                      <td className="py-2 px-2 text-center text-red-400">{player.losses}</td>
+                      <td className="py-2 px-2 text-center text-cyber-cyan">{player.wins}</td>
+                      <td className="py-2 px-2 text-center text-cyber-pink">{player.losses}</td>
                       <td className="py-2 px-2 text-center text-gray-400">{player.draws}</td>
                       <td className="py-2 px-2 text-center">{winRate}%</td>
                     </tr>

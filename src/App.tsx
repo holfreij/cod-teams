@@ -120,9 +120,9 @@ const teamsMatch = (team1: PlayerStats[], team2: PlayerStats[]): boolean => {
 const getBackgroundStyle = (strengthDifference: number) => {
   // Thresholds scaled for ELO ratings (1000-2500 range)
   if (strengthDifference <= 235) {
-    return "bg-gradient-to-r from-green-900 to-green-800 shadow-lg shadow-green-900/50";
+    return "bg-gradient-to-r from-green-900 to-green-800 shadow-neon-cyan";
   } else if (strengthDifference >= 940) {
-    return "bg-gradient-to-r from-red-900 to-red-800 shadow-lg shadow-red-900/50";
+    return "bg-gradient-to-r from-red-900 to-red-800 shadow-neon-pink";
   }
   return "bg-gradient-to-r from-yellow-700 to-yellow-600 shadow-lg shadow-yellow-700/50";
 };
@@ -286,24 +286,27 @@ function App() {
 
   return (
     <div
-      className="flex flex-col gap-6 items-center overflow-auto min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+      className="flex flex-col gap-6 items-center overflow-auto min-h-screen bg-cyber-gradient bg-grid-overlay"
       style={{ padding: '24px'}}
     >
-      <Card.Root className="w-full max-w-4xl shadow-2xl border border-gray-700 transition-all duration-300 hover:shadow-blue-500/20">
-        <Card.Body className="flex items-center justify-center gap-4 bg-gray-800/50">
-          <Heading className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
-            QMG Teams Generator
-          </Heading>
-        </Card.Body>
-      </Card.Root>
-      <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+      <header className="text-center w-full mb-4">
+        <h1
+          className="text-gradient-cyber uppercase font-display tracking-wider"
+          style={{ fontSize: 'clamp(2.5rem, 10vw, 8rem)', fontWeight: 900, lineHeight: 1 }}
+        >
+          QMG Teams Generator
+        </h1>
+        <p className="text-gray-500 mt-2 text-sm md:text-base uppercase tracking-widest">Epic Gaming Awaits</p>
+        <div className="glow-line"></div>
+      </header>
+      <Card.Root className="w-full max-w-4xl shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
         <Card.Body className="flex flex-col items-center gap-4">
           <AccordionRoot
             className="flex flex-col gap-4 items-center w-full"
             collapsible
           >
             <AccordionItem key="maps" value="maps" className="w-full">
-              <AccordionItemTrigger className="text-lg font-semibold">🗺️ Maps</AccordionItemTrigger>
+              <AccordionItemTrigger className="text-lg font-display font-semibold">🗺️ Maps</AccordionItemTrigger>
               <AccordionItemContent>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2">
                   {maps.map((map) => (
@@ -312,7 +315,7 @@ function App() {
                         href={map.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 underline transition-all duration-200 hover:scale-105 inline-block"
+                        className="text-cyber-cyan hover:text-cyber-pink underline transition-all duration-200 hover:scale-105 inline-block"
                       >
                         {map.name}
                       </a>
@@ -322,7 +325,7 @@ function App() {
               </AccordionItemContent>
             </AccordionItem>
             <Button
-              className="mb-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 hover:from-blue-500 hover:to-blue-600"
+              className="cyber-btn-primary mb-2 px-6 py-3 rounded-lg shadow-lg hover:shadow-neon-cyan transition-all duration-300 hover:scale-105"
               onClick={() => {
                 const map = maps[Math.floor(Math.random() * maps.length)];
                 setRandomMap(map.name);
@@ -331,16 +334,16 @@ function App() {
               🎲 Kies willekeurige map
             </Button>
             {randomMap && (
-              <div className="mb-2 text-center text-lg md:text-xl font-bold text-blue-400 animate-pulse">
+              <div className="mb-2 text-center text-lg md:text-xl font-display font-bold text-cyber-cyan animate-pulse">
                 {randomMap}
               </div>
             )}
           </AccordionRoot>
         </Card.Body>
       </Card.Root>
-      <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+      <Card.Root className="w-full max-w-4xl shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
         <Card.Body className="flex flex-col gap-4">
-          <Heading className="text-xl md:text-2xl text-center font-bold text-gray-100">
+          <Heading className="text-xl md:text-2xl text-center font-display font-bold text-cyber-cyan">
             👥 Selecteer spelers
           </Heading>
           <CheckboxGroup
@@ -350,7 +353,7 @@ function App() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {playerStats.map((item) => (
                 <CheckboxCard
-                  className="transition-all duration-200 hover:scale-105"
+                  className="glass-card transition-all duration-200 hover:scale-105 hover:border-cyber-cyan/50"
                   label={`${item.name} (${getDisplayRating(item.name)})`}
                   key={item.name}
                   value={item.name}
@@ -361,11 +364,11 @@ function App() {
         </Card.Body>
       </Card.Root>
 
-      <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+      <Card.Root className="w-full max-w-4xl shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
         <Card.Body className="flex flex-col gap-4">
           <AccordionRoot multiple className="w-full">
-            <AccordionItem key={"buff"} value={"buff"} className="border-b border-gray-700">
-              <AccordionItemTrigger className="text-lg font-semibold hover:text-orange-400 transition-colors">
+            <AccordionItem key={"buff"} value={"buff"} className="border-b border-cyber-cyan/20">
+              <AccordionItemTrigger className="text-lg font-display font-semibold hover:text-cyber-cyan transition-colors">
                 On fire 🔥
               </AccordionItemTrigger>
               <AccordionItemContent>
@@ -376,7 +379,7 @@ function App() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
                     {activePlayers.map((player: string) => (
                       <CheckboxCard
-                        className="transition-all duration-200 hover:scale-105 hover:border-orange-500"
+                        className="glass-card transition-all duration-200 hover:scale-105 hover:border-cyber-cyan"
                         label={player}
                         key={player}
                         value={player}
@@ -388,7 +391,7 @@ function App() {
             </AccordionItem>
 
             <AccordionItem key={"nerf"} value={"nerf"}>
-              <AccordionItemTrigger className="text-lg font-semibold hover:text-purple-400 transition-colors">
+              <AccordionItemTrigger className="text-lg font-display font-semibold hover:text-cyber-pink transition-colors">
                 Noob 💩♟️⚽
               </AccordionItemTrigger>
               <AccordionItemContent>
@@ -399,7 +402,7 @@ function App() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
                     {activePlayers.map((player: string) => (
                       <CheckboxCard
-                        className="transition-all duration-200 hover:scale-105 hover:border-purple-500"
+                        className="glass-card transition-all duration-200 hover:scale-105 hover:border-cyber-pink"
                         label={player}
                         key={player}
                         value={player}
@@ -413,21 +416,21 @@ function App() {
         </Card.Body>
       </Card.Root>
       {isUnevenTeams && solutions.length > 0 && (
-        <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+        <Card.Root className="w-full max-w-4xl shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
           <Card.Body className="flex flex-col gap-4">
-            <Heading className="text-center text-lg md:text-xl font-bold text-gray-100">
+            <Heading className="text-center text-lg md:text-xl font-display font-bold text-cyber-pink">
               ⚖️ Stel moeilijkheid voor het kleine team in
             </Heading>
             <div className="flex flex-col gap-3">
               <div className="flex justify-between items-center text-sm text-gray-300">
                 <span>Basiswaarde:</span>
-                <span className="font-bold text-blue-400">{Math.round(currentCoefficient)}</span>
+                <span className="font-bold text-cyber-cyan">{Math.round(currentCoefficient)}</span>
               </div>
               <div className="flex justify-between items-center text-sm text-gray-300">
                 <span>Handmatige Aanpassing:</span>
-                <span className="font-bold text-purple-400">{handicapOffset > 0 ? '+' : ''}{handicapOffset}%</span>
+                <span className="font-bold text-cyber-pink">{handicapOffset > 0 ? '+' : ''}{handicapOffset}%</span>
               </div>
-              <div className="flex justify-between items-center text-sm text-gray-300 border-t border-gray-700 pt-2">
+              <div className="flex justify-between items-center text-sm text-gray-300 border-t border-cyber-cyan/20 pt-2">
                 <span>Totale Handicap:</span>
                 <span className="font-bold text-green-400">{Math.round(currentCoefficient * (1 + handicapOffset / 100))}</span>
               </div>
@@ -450,23 +453,23 @@ function App() {
         </Card.Root>
       )}
       {isCalculatingTeams ? (
-        <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 bg-gradient-to-br from-gray-800/50 to-gray-900/50">
+        <Card.Root className="w-full max-w-4xl shadow-xl glass-card">
           <Card.Body className="flex flex-col items-center justify-center gap-6 py-16">
             <div className="relative">
-              <div className="animate-spin rounded-full h-20 w-20 border-4 border-gray-700 border-t-green-400"></div>
+              <div className="animate-spin rounded-full h-20 w-20 border-4 border-cyber-dark-secondary border-t-cyber-cyan"></div>
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <div className="animate-pulse w-10 h-10 rounded-full bg-green-400/20"></div>
+                <div className="animate-pulse w-10 h-10 rounded-full bg-cyber-cyan/20"></div>
               </div>
             </div>
             <div className="text-center">
-              <p className="text-xl text-gray-200 font-bold mb-1">Berekenen van teams...</p>
+              <p className="text-xl text-gray-200 font-display font-bold mb-1">Berekenen van teams...</p>
               <p className="text-sm text-gray-400">Een moment geduld</p>
             </div>
           </Card.Body>
         </Card.Root>
       ) : solutions.length > 0 && (
         <div className="flex flex-col items-center gap-6 w-full max-w-4xl pb-8">
-          <Heading className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
+          <Heading className="text-2xl md:text-3xl font-display font-bold text-gradient-cyber">
             ⚔️ Teams
           </Heading>
           {solutions
@@ -488,28 +491,34 @@ function App() {
                 <Card.Body
                   className={`${getBackgroundStyle(match.strengthDifference)} rounded-lg transition-all duration-300`}
                 >
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-2">
-                    <Card.Root className="w-full sm:flex-1 bg-gray-800/80 backdrop-blur transition-transform duration-300 hover:scale-105">
-                      <Card.Body>
-                        <ul className="flex flex-col items-center gap-1">
+                  <div className="flex flex-row justify-between items-stretch gap-2">
+                    <Card.Root className="flex-1 basis-0 glass-card">
+                      <Card.Body className="flex items-center justify-center h-full">
+                        <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-1 text-center">
                           {match.team1.map((player, i) => (
-                            <li key={i} className="text-sm md:text-base font-semibold text-gray-100">
+                            <li key={i} className="text-sm md:text-base font-semibold text-cyber-cyan">
                               {player.name}
                             </li>
                           ))}
                         </ul>
                       </Card.Body>
                     </Card.Root>
-                    <div className="flex flex-col items-center gap-1 px-4">
-                      <div className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
+                    <div className="flex flex-col items-center justify-center gap-1 px-2 sm:px-4 shrink-0">
+                      <div
+                        className="font-display font-bold text-white drop-shadow-lg"
+                        style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)' }}
+                      >
                         {strengthDifferenceIndicator(match) || "="}
                       </div>
-                      <div className="text-xs text-gray-300">
+                      <div
+                        className="text-cyber-cyan"
+                        style={{ fontSize: 'clamp(0.75rem, 2vw, 1rem)' }}
+                      >
                         {match.strengthDifference}
                       </div>
                       {user && ((selectedTeam && teamsMatch(selectedTeam.team1, match.team1) && teamsMatch(selectedTeam.team2, match.team2)) || (!selectedTeam && index === 0)) && (
                         <Button
-                          className="mt-2 px-3 py-1 bg-gradient-to-r from-green-600 to-green-700 text-white text-sm rounded-lg font-semibold shadow-lg hover:shadow-green-500/50 transition-all duration-300 hover:scale-105"
+                          className="cyber-btn-primary mt-2 px-3 py-1 text-sm rounded-lg shadow-lg hover:shadow-neon-cyan transition-all duration-300 hover:scale-105"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedTeam({ team1: match.team1, team2: match.team2 });
@@ -520,11 +529,11 @@ function App() {
                         </Button>
                       )}
                     </div>
-                    <Card.Root className="w-full sm:flex-1 bg-gray-800/80 backdrop-blur transition-transform duration-300 hover:scale-105">
-                      <Card.Body>
-                        <ul className="flex flex-col items-center gap-1">
+                    <Card.Root className="flex-1 basis-0 glass-card">
+                      <Card.Body className="flex items-center justify-center h-full">
+                        <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-1 text-center">
                           {match.team2.map((player, i) => (
-                            <li key={i} className="text-sm md:text-base font-semibold text-gray-100">
+                            <li key={i} className="text-sm md:text-base font-semibold text-cyber-cyan">
                               {player.name}
                             </li>
                           ))}

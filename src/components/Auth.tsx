@@ -39,20 +39,20 @@ export const Auth = () => {
 
   if (user) {
     return (
-      <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+      <Card.Root className="w-full max-w-4xl shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
         <Card.Body className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyber-cyan to-cyber-pink flex items-center justify-center text-cyber-dark font-display font-bold">
               {user.email?.[0].toUpperCase()}
             </div>
             <div>
               <p className="text-sm text-gray-400">Ingelogd als</p>
-              <p className="font-semibold">{user.email}</p>
+              <p className="font-semibold text-cyber-cyan">{user.email}</p>
             </div>
           </div>
           <Button
             onClick={handleSignOut}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-cyber-dark-secondary border border-cyber-pink/30 hover:border-cyber-pink text-cyber-pink rounded-lg font-display transition-all hover:shadow-neon-pink/50"
           >
             Uitloggen
           </Button>
@@ -62,10 +62,10 @@ export const Auth = () => {
   }
 
   return (
-    <Card.Root className="w-full max-w-4xl shadow-xl border border-gray-700 transition-all duration-300 hover:border-gray-600">
+    <Card.Root className="w-full max-w-4xl shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
       <Card.Body className="flex flex-col gap-4">
         <div className="text-center">
-          <Heading className="text-xl md:text-2xl font-bold text-gray-100">
+          <Heading className="text-xl md:text-2xl font-display font-bold text-cyber-cyan">
             🔐 Inloggen
           </Heading>
           <p className="text-sm text-gray-400 mt-2">
@@ -81,14 +81,14 @@ export const Auth = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
-              className="w-full"
+              className="w-full bg-cyber-dark border-cyber-cyan/30 focus:border-cyber-cyan focus:ring-cyber-cyan/50"
             />
           </Field>
 
           <Button
             type="submit"
             disabled={loading}
-            className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="cyber-btn-primary w-full px-6 py-3 rounded-lg shadow-lg hover:shadow-neon-cyan transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Magic Link aan het versturen...' : '✨ Ontvang Magic Link'}
           </Button>
