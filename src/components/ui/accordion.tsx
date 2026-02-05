@@ -37,8 +37,8 @@ export const AccordionItemContent = React.forwardRef<
   AccordionItemContentProps
 >(function AccordionItemContent(props, ref) {
   return (
-    <Accordion.ItemContent>
-      <Accordion.ItemBody {...props} ref={ref} />
+    <Accordion.ItemContent css={{ overflow: "visible" }}>
+      <Accordion.ItemBody {...props} ref={ref} css={{ overflow: "visible" }} />
     </Accordion.ItemContent>
   )
 })

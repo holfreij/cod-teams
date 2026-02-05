@@ -205,6 +205,28 @@ function App() {
     loadCoefficient();
   }, [ratingsVersion]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in input fields
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (event.key === 'r' || event.key === 'R') {
+        // Pick random map
+        const map = maps[Math.floor(Math.random() * maps.length)];
+        setRandomMap(map.name);
+      } else if (event.key === 'Escape') {
+        // Clear selected team
+        setSelectedTeam(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   useEffect(() => {
     const updateSolutions = async () => {
       // Only show loading state if calculation takes longer than 300ms
@@ -306,16 +328,16 @@ function App() {
             collapsible
           >
             <AccordionItem key="maps" value="maps" className="w-full">
-              <AccordionItemTrigger className="text-lg font-display font-semibold">🗺️ Maps</AccordionItemTrigger>
+              <AccordionItemTrigger className="text-lg font-display font-semibold text-cyber-cyan">🗺️ Maps</AccordionItemTrigger>
               <AccordionItemContent>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-80 overflow-y-auto p-4">
                   {maps.map((map) => (
-                    <li key={map.name}>
+                    <li key={map.name} className="text-center">
                       <a
                         href={map.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-cyber-cyan hover:text-cyber-pink underline transition-all duration-200 hover:scale-105 inline-block"
+                        className="text-cyber-cyan hover:text-cyber-pink underline transition-all duration-200 hover:scale-110 inline-block"
                       >
                         {map.name}
                       </a>
@@ -341,6 +363,7 @@ function App() {
           </AccordionRoot>
         </Card.Body>
       </Card.Root>
+      <div className="glow-line"></div>
       <Card.Root className="w-full max-w-4xl shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
         <Card.Body className="flex flex-col gap-4">
           <Heading className="text-xl md:text-2xl text-center font-display font-bold text-cyber-cyan">
@@ -363,12 +386,12 @@ function App() {
           </CheckboxGroup>
         </Card.Body>
       </Card.Root>
-
-      <Card.Root className="w-full max-w-4xl shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
-        <Card.Body className="flex flex-col gap-4">
+      <div className="glow-line"></div>
+      <Card.Root className="w-full max-w-4xl shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30 overflow-visible">
+        <Card.Body className="flex flex-col gap-4 overflow-visible">
           <AccordionRoot multiple className="w-full">
             <AccordionItem key={"buff"} value={"buff"} className="border-b border-cyber-cyan/20">
-              <AccordionItemTrigger className="text-lg font-display font-semibold hover:text-cyber-cyan transition-colors">
+              <AccordionItemTrigger className="text-lg font-display font-semibold text-orange-400 hover:text-orange-300 transition-colors">
                 On fire 🔥
               </AccordionItemTrigger>
               <AccordionItemContent>
@@ -376,7 +399,7 @@ function App() {
                   onValueChange={handleBuffedPlayersChange}
                   value={buffedPlayers}
                 >
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4 overflow-visible">
                     {activePlayers.map((player: string) => (
                       <CheckboxCard
                         className="glass-card transition-all duration-200 hover:scale-105 hover:border-cyber-cyan"
@@ -391,7 +414,7 @@ function App() {
             </AccordionItem>
 
             <AccordionItem key={"nerf"} value={"nerf"}>
-              <AccordionItemTrigger className="text-lg font-display font-semibold hover:text-cyber-pink transition-colors">
+              <AccordionItemTrigger className="text-lg font-display font-semibold text-cyber-pink hover:text-pink-300 transition-colors">
                 Noob 💩♟️⚽
               </AccordionItemTrigger>
               <AccordionItemContent>
@@ -399,7 +422,7 @@ function App() {
                   onValueChange={handleNerfedPlayersChange}
                   value={nerfedPlayers}
                 >
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4 overflow-visible">
                     {activePlayers.map((player: string) => (
                       <CheckboxCard
                         className="glass-card transition-all duration-200 hover:scale-105 hover:border-cyber-pink"
@@ -455,12 +478,7 @@ function App() {
       {isCalculatingTeams ? (
         <Card.Root className="w-full max-w-4xl shadow-xl glass-card">
           <Card.Body className="flex flex-col items-center justify-center gap-6 py-16">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-20 w-20 border-4 border-cyber-dark-secondary border-t-cyber-cyan"></div>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <div className="animate-pulse w-10 h-10 rounded-full bg-cyber-cyan/20"></div>
-              </div>
-            </div>
+            <div className="cyber-spinner"></div>
             <div className="text-center">
               <p className="text-xl text-gray-200 font-display font-bold mb-1">Berekenen van teams...</p>
               <p className="text-sm text-gray-400">Een moment geduld</p>
@@ -469,6 +487,7 @@ function App() {
         </Card.Root>
       ) : solutions.length > 0 && (
         <div className="flex flex-col items-center gap-6 w-full max-w-4xl pb-8">
+          <div className="glow-line"></div>
           <Heading className="text-2xl md:text-3xl font-display font-bold text-gradient-cyber">
             ⚔️ Teams
           </Heading>
@@ -480,7 +499,7 @@ function App() {
                 className={`w-full transition-all duration-500 cursor-pointer ${
                   (selectedTeam && teamsMatch(selectedTeam.team1, match.team1) && teamsMatch(selectedTeam.team2, match.team2)) ||
                   (!selectedTeam && index === 0)
-                    ? 'scale-105'
+                    ? 'scale-105 selected-team-card'
                     : 'hover:scale-[1.02]'
                 }`}
                 style={{
@@ -496,7 +515,7 @@ function App() {
                       <Card.Body className="flex items-center justify-center h-full">
                         <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-1 text-center">
                           {match.team1.map((player, i) => (
-                            <li key={i} className="text-sm md:text-base font-semibold text-cyber-cyan">
+                            <li key={i} className="text-sm md:text-base font-semibold text-cyber-cyan player-name-hover">
                               {player.name}
                             </li>
                           ))}
@@ -533,7 +552,7 @@ function App() {
                       <Card.Body className="flex items-center justify-center h-full">
                         <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-1 text-center">
                           {match.team2.map((player, i) => (
-                            <li key={i} className="text-sm md:text-base font-semibold text-cyber-cyan">
+                            <li key={i} className="text-sm md:text-base font-semibold text-cyber-cyan player-name-hover">
                               {player.name}
                             </li>
                           ))}

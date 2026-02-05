@@ -293,7 +293,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
 
           {loading ? (
             <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyber-cyan"></div>
+              <div className="cyber-spinner-sm"></div>
             </div>
           ) : matchHistory.length === 0 ? (
             <p className="text-gray-400 text-center py-8">
