@@ -535,18 +535,6 @@ function App() {
                       >
                         {match.strengthDifference}
                       </div>
-                      {user && ((selectedTeam && teamsMatch(selectedTeam.team1, match.team1) && teamsMatch(selectedTeam.team2, match.team2)) || (!selectedTeam && index === 0)) && (
-                        <Button
-                          className="cyber-btn-primary mt-2 px-3 py-1 text-sm rounded-lg shadow-lg hover:shadow-neon-cyan transition-all duration-300 hover:scale-105"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedTeam({ team1: match.team1, team2: match.team2 });
-                            setIsRecordDialogOpen(true);
-                          }}
-                        >
-                          📝 Registreer uitslag
-                        </Button>
-                      )}
                     </div>
                     <Card.Root className="flex-1 basis-0 glass-card">
                       <Card.Body className="flex items-center justify-center h-full">
@@ -560,6 +548,20 @@ function App() {
                       </Card.Body>
                     </Card.Root>
                   </div>
+                  {user && ((selectedTeam && teamsMatch(selectedTeam.team1, match.team1) && teamsMatch(selectedTeam.team2, match.team2)) || (!selectedTeam && index === 0)) && (
+                    <div className="flex justify-center mt-3">
+                      <Button
+                        className="cyber-btn-primary px-4 py-2 text-sm rounded-lg shadow-lg hover:shadow-neon-cyan transition-all duration-300 hover:scale-105"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTeam({ team1: match.team1, team2: match.team2 });
+                          setIsRecordDialogOpen(true);
+                        }}
+                      >
+                        📝 Registreer uitslag
+                      </Button>
+                    </div>
+                  )}
                 </Card.Body>
               </Card.Root>
             ))}
