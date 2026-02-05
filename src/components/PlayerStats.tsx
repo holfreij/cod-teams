@@ -29,7 +29,7 @@ export const PlayerStatsDisplay = () => {
               📈 Statistieken
             </Heading>
             <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyber-cyan"></div>
+              <div className="cyber-spinner-sm"></div>
             </div>
           </Card.Body>
         </Card.Root>

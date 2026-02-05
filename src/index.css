@@ -171,32 +171,101 @@ body {
   scrollbar-color: var(--color-cyber-cyan) var(--color-cyber-dark);
 }
 
-/* Chakra UI CheckboxCard Overrides */
-[data-part="control"] {
-  border-color: rgba(0, 255, 255, 0.3) !important;
-  background: linear-gradient(145deg, rgba(20, 20, 40, 0.9), rgba(10, 10, 20, 0.95)) !important;
+/* Pulsing border animation for selected team card */
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff; }
+  50% { box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff, 0 0 60px #00ffff; }
 }
 
-[data-part="control"]:hover {
-  border-color: rgba(0, 255, 255, 0.6) !important;
+.selected-team-card {
+  animation: pulse-border 2s ease-in-out infinite;
+  border-color: #00ffff !important;
 }
 
-[data-part="control"][data-state="checked"] {
-  border-color: var(--color-cyber-cyan) !important;
-  background: linear-gradient(145deg, rgba(0, 255, 255, 0.15), rgba(10, 10, 20, 0.95)) !important;
+/* Player name hover effects */
+.player-name-hover {
+  transition: all 0.2s ease;
+  display: inline-block;
+}
+.player-name-hover:hover {
+  text-shadow: 0 0 10px #00ffff;
+  transform: scale(1.05);
 }
 
-[data-part="label"] {
-  color: var(--color-cyber-cyan) !important;
+/* Animated card border trace */
+.card-border-trace {
+  position: relative;
+}
+.card-border-trace::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(90deg, #00ffff, #ff0080, #00ffff);
+  background-size: 300% 100%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.card-border-trace:hover::before {
+  opacity: 1;
+  animation: border-trace 2s linear infinite;
+}
+@keyframes border-trace {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
 }
 
-[data-part="indicator"] {
-  border-color: rgba(0, 255, 255, 0.5) !important;
+/* Cyberpunk loading spinner */
+.cyber-spinner {
+  width: 80px;
+  height: 80px;
+  border: 4px solid transparent;
+  border-top-color: #00ffff;
+  border-bottom-color: #ff0080;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), inset 0 0 20px rgba(255, 0, 128, 0.3);
 }
 
-[data-part="indicator"][data-state="checked"] {
-  background: var(--color-cyber-cyan) !important;
-  border-color: var(--color-cyber-cyan) !important;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Smaller cyber spinner variant */
+.cyber-spinner-sm {
+  width: 48px;
+  height: 48px;
+  border: 3px solid transparent;
+  border-top-color: #00ffff;
+  border-bottom-color: #ff0080;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 15px rgba(255, 0, 128, 0.3);
+}
+
+/* Scanline overlay effect */
+.scanlines::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.1) 0px,
+    rgba(0, 0, 0, 0.1) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.3;
 }
 
 /* Cyberpunk Button Styles */

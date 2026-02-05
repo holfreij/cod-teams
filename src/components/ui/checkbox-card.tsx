@@ -11,6 +11,43 @@ export interface CheckboxCardProps extends ChakraCheckboxCard.RootProps {
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>
 }
 
+// Cyberpunk color scheme
+const cyberStyles = {
+  root: {
+    borderColor: "rgba(0, 255, 255, 0.3)",
+    background: "linear-gradient(145deg, rgba(20, 20, 40, 0.9), rgba(10, 10, 20, 0.95))",
+    _hover: {
+      borderColor: "rgba(0, 255, 255, 0.6)",
+    },
+    _checked: {
+      borderColor: "#00ffff",
+      background: "linear-gradient(145deg, rgba(0, 255, 255, 0.15), rgba(10, 10, 20, 0.95))",
+    }
+  },
+  control: {
+    borderColor: "rgba(0, 255, 255, 0.3)",
+    background: "linear-gradient(145deg, rgba(20, 20, 40, 0.9), rgba(10, 10, 20, 0.95))",
+    _hover: {
+      borderColor: "rgba(0, 255, 255, 0.6)",
+    },
+    _checked: {
+      borderColor: "#00ffff",
+      background: "linear-gradient(145deg, rgba(0, 255, 255, 0.15), rgba(10, 10, 20, 0.95))",
+    }
+  },
+  label: {
+    color: "#00ffff",
+  },
+  indicator: {
+    borderColor: "rgba(0, 255, 255, 0.5)",
+    _checked: {
+      background: "#00ffff",
+      borderColor: "#00ffff",
+      color: "#0a0a0a",
+    }
+  }
+}
+
 export const CheckboxCard = React.forwardRef<
   HTMLInputElement,
   CheckboxCardProps
@@ -21,7 +58,7 @@ export const CheckboxCard = React.forwardRef<
     description,
     icon,
     addon,
-    indicator = <ChakraCheckboxCard.Indicator />,
+    indicator = <ChakraCheckboxCard.Indicator css={cyberStyles.indicator} />,
     indicatorPlacement = "end",
     ...rest
   } = props
@@ -30,15 +67,15 @@ export const CheckboxCard = React.forwardRef<
   const ContentWrapper = indicator ? ChakraCheckboxCard.Content : React.Fragment
 
   return (
-    <ChakraCheckboxCard.Root {...rest}>
+    <ChakraCheckboxCard.Root css={cyberStyles.root} {...rest}>
       <ChakraCheckboxCard.HiddenInput ref={ref} {...inputProps} />
-      <ChakraCheckboxCard.Control>
+      <ChakraCheckboxCard.Control css={cyberStyles.control}>
         {indicatorPlacement === "start" && indicator}
         {hasContent && (
           <ContentWrapper>
             {icon}
             {label && (
-              <ChakraCheckboxCard.Label>{label}</ChakraCheckboxCard.Label>
+              <ChakraCheckboxCard.Label css={cyberStyles.label}>{label}</ChakraCheckboxCard.Label>
             )}
             {description && (
               <ChakraCheckboxCard.Description>
