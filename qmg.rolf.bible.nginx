@@ -1,0 +1,36 @@
+  server {
+      server_name qmg.rolf.bible;
+
+      root /var/www/qmg.rolf.bible/html;
+      index index.html;
+
+      location /api/ {
+          proxy_pass http://127.0.0.1:3001/api/;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          client_max_body_size 10M;
+      }
+
+      location / {
+          try_files $uri $uri/ /index.html;
+      }
+
+      listen [::]:443 ssl;
+      listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/rolf.bible/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/rolf.bible/privkey.pem;
+      include /etc/letsencrypt/options-ssl-nginx.conf;
+      ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+}
+  server {
+      if ($host = qmg.rolf.bible) {
+          return 301 https://$host$request_uri;
+      }
+
+      server_name qmg.rolf.bible;
+      listen 80;
+      listen [::]:80;
+      return 404;
+
+  }

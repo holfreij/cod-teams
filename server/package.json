@@ -1,0 +1,13 @@
+{
+  "name": "cod-teams-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@supabase/supabase-js": "^2.90.1",
+    "express": "^4.21.0"
+  }
+}

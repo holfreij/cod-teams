@@ -11,7 +11,7 @@ import {
   DialogCloseTrigger,
 } from "@/components/ui/dialog";
 import { Button, Card, Heading, Input } from "@chakra-ui/react";
-import { MatchResult, PlayerStats } from "../types";
+import { MatchResult, PlayerStats, ScreenshotAnalysisResult } from "../types";
 import {
   getMatchHistory,
   deleteMatch,
@@ -23,6 +23,7 @@ import {
   adjustHandicapCoefficient,
 } from "../storage";
 import { Field } from "@/components/ui/field";
+import { ScreenshotUpload } from "./ScreenshotUpload";
 
 interface MapInfo {
   name: string;
@@ -60,6 +61,18 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
   const [team2Score, setTeam2Score] = useState("");
   const [selectedMap, setSelectedMap] = useState("");
   const [displayCount, setDisplayCount] = useState(50);
+
+  const handleScreenshotResult = (result: ScreenshotAnalysisResult) => {
+    if (result.team1Score != null) setTeam1Score(String(result.team1Score));
+    if (result.team2Score != null) setTeam2Score(String(result.team2Score));
+    if (result.map) {
+      // Match against known maps (case-insensitive)
+      const matched = maps.find(
+        (m) => m.name.toLowerCase() === result.map!.toLowerCase()
+      );
+      if (matched) setSelectedMap(matched.name);
+    }
+  };
 
   // Load match history on mount
   useEffect(() => {
@@ -217,6 +230,8 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
                     <DialogTitle className="text-xl font-display font-bold text-cyber-cyan">Registreer wedstrijd uitslag</DialogTitle>
                   </DialogHeader>
                   <DialogBody className="flex flex-col gap-4">
+                    <ScreenshotUpload onResult={handleScreenshotResult} dialogOpen={isRecordDialogOpen} />
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="font-display font-semibold mb-2 text-cyber-cyan">Team 1</p>

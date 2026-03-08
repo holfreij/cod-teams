@@ -15,6 +15,13 @@ export interface MatchResult {
   ratingChanges: { [playerName: string]: number };
 }
 
+export interface ScreenshotAnalysisResult {
+  team1Score: number | null;
+  team2Score: number | null;
+  map: string | null;
+  confidence: number;
+}
+
 export interface PlayerRating {
   name: string;
   rating: number;
