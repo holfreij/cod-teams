@@ -116,21 +116,57 @@ app.post("/api/analyze-screenshot", async (req, res) => {
             },
             {
               type: "text",
-              text: `Analyze this Call of Duty match result screenshot. Extract the scores for both teams/sides.
+              text: `Analyze this Call of Duty Search and Destroy match result screenshot.
+
+Screenshot layout:
+- At the top: a "WON" or "LOST" indicator (ignore this).
+- Below that: a line reading "Search and Destroy | <map name>" with match time on the far right (ignore the time).
+- Two vertically stacked tables (top table = team 1, bottom table = team 2).
+- On the left side of each table: the team's total round score. The winning team always has 10, the losing team 0-9.
+- Team names like "Allegiance" and "Coalition" are generic labels — ignore them.
+- Each table lists the players on that team with 6 columns:
+  1. Player name — often prefixed with [QMG] or [<QMG>] and suffixed with #1234567 (ignore prefix and suffix)
+  2. Score (total points from kills/assists/objectives)
+  3. Kills
+  4. Deaths
+  5. Plants
+  6. Defuses
+
+Known player gamer tags (tag -> real name). Ignore any trailing #numbers and [QMG] prefixes:
+- Glow -> Kevin
+- D3labottle -> Maarten
+- W33M4N -> Thomas
+- Freagle -> Frank
+- hYdrax1 -> Rolf
+- deSperado -> Rick
+- chilljoey -> Joel
+- Aegys -> Lennard
+- Guido68 -> Guido
+- getJayked -> Jan-Joost
+- Tuinman40 -> Arjan
+
+Tags may have slight variations (capitalization, extra characters). Match them as best you can.
 
 Return ONLY a JSON object with this exact structure (no markdown, no explanation):
 {
   "team1Score": <number>,
   "team2Score": <number>,
+  "team1Players": [
+    { "name": "<real name>", "score": <number>, "kills": <number>, "deaths": <number>, "plants": <number>, "defuses": <number> }
+  ],
+  "team2Players": [
+    { "name": "<real name>", "score": <number>, "kills": <number>, "deaths": <number>, "plants": <number>, "defuses": <number> }
+  ],
   "map": "<map name if visible, otherwise null>",
   "confidence": <number between 0 and 1>
 }
 
 Rules:
-- team1 is the top/left team, team2 is the bottom/right team
-- If you cannot determine scores, return {"team1Score": null, "team2Score": null, "map": null, "confidence": 0}
-- confidence should reflect how certain you are about the extracted values
-- Map name should be the standard COD map name if recognizable`,
+- team1 is the top table, team2 is the bottom table
+- Use the real names from the mapping above, not the gamer tags
+- If a gamer tag doesn't match any known player, use the cleaned tag (without prefix/suffix) as the name
+- If you cannot determine scores, return {"team1Score": null, "team2Score": null, "team1Players": [], "team2Players": [], "map": null, "confidence": 0}
+- confidence should reflect how certain you are about the extracted values`,
             },
           ],
         },

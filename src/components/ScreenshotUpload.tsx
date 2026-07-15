@@ -1,18 +1,46 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@chakra-ui/react";
 import { analyzeScreenshot } from "../services/screenshotAnalyzer";
-import type { ScreenshotAnalysisResult } from "../types";
+import type { ScreenshotAnalysisResult, PlayerMatchStats } from "../types";
 
 interface ScreenshotUploadProps {
   onResult: (result: ScreenshotAnalysisResult) => void;
   dialogOpen: boolean;
 }
 
+const StatsTable = ({ players, teamColor }: { players: PlayerMatchStats[]; teamColor: string }) => (
+  <table className="w-full text-xs">
+    <thead>
+      <tr className={`text-${teamColor}/70`}>
+        <th className="text-left font-medium py-0.5">Speler</th>
+        <th className="text-right font-medium py-0.5">Score</th>
+        <th className="text-right font-medium py-0.5">K</th>
+        <th className="text-right font-medium py-0.5">D</th>
+        <th className="text-right font-medium py-0.5">P</th>
+        <th className="text-right font-medium py-0.5">Def</th>
+      </tr>
+    </thead>
+    <tbody>
+      {players.map((p) => (
+        <tr key={p.name} className="text-gray-300">
+          <td className={`text-left py-0.5 text-${teamColor}`}>{p.name}</td>
+          <td className="text-right py-0.5">{p.score}</td>
+          <td className="text-right py-0.5">{p.kills}</td>
+          <td className="text-right py-0.5">{p.deaths}</td>
+          <td className="text-right py-0.5">{p.plants}</td>
+          <td className="text-right py-0.5">{p.defuses}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
+
 export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps) => {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lowConfidence, setLowConfidence] = useState(false);
+  const [result, setResult] = useState<ScreenshotAnalysisResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = useCallback(async (file: File) => {
@@ -23,15 +51,17 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
 
     setError(null);
     setLowConfidence(false);
+    setResult(null);
     setPreview(URL.createObjectURL(file));
     setLoading(true);
 
     try {
-      const result = await analyzeScreenshot(file);
-      if (result.confidence < 0.6) {
+      const res = await analyzeScreenshot(file);
+      if (res.confidence < 0.6) {
         setLowConfidence(true);
       }
-      onResult(result);
+      setResult(res);
+      onResult(res);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Analyse mislukt");
     } finally {
@@ -71,6 +101,7 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
     setError(null);
     setLowConfidence(false);
     setLoading(false);
+    setResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -80,7 +111,6 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={handleFileChange}
         className="hidden"
       />
@@ -92,7 +122,7 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
             className="cyber-btn-primary px-4 py-3 rounded-lg w-full text-base min-h-[48px]"
             disabled={loading}
           >
-            📸 Upload screenshot
+            Upload screenshot
           </Button>
           <span className="text-xs text-gray-500">
             of plak een screenshot (Ctrl+V)
@@ -101,13 +131,22 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
       )}
 
       {preview && (
-        <div className="flex items-center gap-3">
-          <img
-            src={preview}
-            alt="Screenshot preview"
-            className="h-16 w-auto rounded border border-cyber-cyan/20 object-cover"
-          />
-          <div className="flex flex-col gap-1 flex-1 min-w-0">
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between items-start">
+            <img
+              src={preview}
+              alt="Screenshot preview"
+              className="h-20 w-auto rounded border border-cyber-cyan/20 object-cover"
+            />
+            <button
+              onClick={reset}
+              className="text-gray-500 hover:text-gray-300 text-lg px-1"
+              title="Verwijder screenshot"
+            >
+              ✕
+            </button>
+          </div>
+          <div>
             {loading && (
               <div className="flex items-center gap-2 text-cyber-cyan text-sm">
                 <div className="cyber-spinner-sm" />
@@ -116,23 +155,33 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
             )}
             {lowConfidence && !loading && (
               <span className="text-yellow-400 text-xs">
-                ⚠️ Lage betrouwbaarheid — controleer de scores
+                Lage betrouwbaarheid — controleer de scores
               </span>
             )}
             {error && (
               <span className="text-red-400 text-xs">{error}</span>
             )}
-            {!loading && !error && !lowConfidence && (
-              <span className="text-green-400 text-xs">✓ Scores ingevuld</span>
+            {!loading && !error && !lowConfidence && result && (
+              <span className="text-green-400 text-xs">Scores ingevuld</span>
             )}
           </div>
-          <button
-            onClick={reset}
-            className="text-gray-500 hover:text-gray-300 text-lg px-1"
-            title="Verwijder screenshot"
-          >
-            ✕
-          </button>
+
+          {result && (result.team1Players.length > 0 || result.team2Players.length > 0) && (
+            <div className="grid grid-cols-2 gap-3 mt-1">
+              {result.team1Players.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-cyber-cyan mb-1">Team 1</p>
+                  <StatsTable players={result.team1Players} teamColor="cyber-cyan" />
+                </div>
+              )}
+              {result.team2Players.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-cyber-pink mb-1">Team 2</p>
+                  <StatsTable players={result.team2Players} teamColor="cyber-pink" />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
