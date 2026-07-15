@@ -574,6 +574,7 @@ function App() {
 
       <MatchHistory
         currentTeams={user ? (selectedTeam || { team1: solutions[0]?.team1 || [], team2: solutions[0]?.team2 || [] }) : null}
+        allPlayers={playerStats}
         onRatingsUpdate={handleRatingsUpdate}
         maps={maps}
         externalDialogOpen={isRecordDialogOpen}

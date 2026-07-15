@@ -25,6 +25,7 @@ import {
 } from "../storage";
 import { Field } from "@/components/ui/field";
 import { ScreenshotUpload } from "./ScreenshotUpload";
+import { TeamSelection, toggleTeamMembership } from "../teamSelection";
 
 interface MapInfo {
   name: string;
@@ -33,26 +34,42 @@ interface MapInfo {
 
 interface MatchHistoryProps {
   currentTeams: { team1: PlayerStats[]; team2: PlayerStats[] } | null;
+  allPlayers: PlayerStats[];
   onRatingsUpdate: () => void;
   maps: MapInfo[];
   externalDialogOpen?: boolean;
   onExternalDialogClose?: () => void;
 }
 
-export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDialogOpen, onExternalDialogClose }: MatchHistoryProps) => {
+export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, externalDialogOpen, onExternalDialogClose }: MatchHistoryProps) => {
   const { user } = useAuth();
   const [matchHistory, setMatchHistory] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
+  const [manualTeams, setManualTeams] = useState<TeamSelection>({ team1: [], team2: [] });
+
+  // Start the manual selection from the generated teams; the user can adjust
+  const prefillFromCurrentTeams = () => {
+    setManualTeams({
+      team1: currentTeams?.team1.map((p) => p.name) ?? [],
+      team2: currentTeams?.team2.map((p) => p.name) ?? [],
+    });
+  };
 
   // Sync with external dialog control
   useEffect(() => {
     if (externalDialogOpen) {
+      prefillFromCurrentTeams();
       setIsRecordDialogOpen(true);
     }
+    // prefill only at open; re-running on currentTeams changes would wipe manual edits
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalDialogOpen]);
 
   const handleDialogOpenChange = (open: boolean) => {
+    if (open && !isRecordDialogOpen) {
+      prefillFromCurrentTeams();
+    }
     setIsRecordDialogOpen(open);
     if (!open && onExternalDialogClose) {
       onExternalDialogClose();
@@ -74,8 +91,9 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
     }
     if (result.team1Score != null) setTeam1Score(String(result.team1Score));
     if (result.team2Score != null) setTeam2Score(String(result.team2Score));
+    // Only a full parse (both teams) can replace the manual team selection
     setScreenshotStats(
-      result.team1Players.length || result.team2Players.length
+      result.team1Players.length && result.team2Players.length
         ? { team1: result.team1Players, team2: result.team2Players }
         : null
     );
@@ -104,7 +122,23 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
   };
 
   const handleRecordMatch = async () => {
-    if (!currentTeams) return;
+    // Roster: the parsed screenshot teams when available, otherwise the manual selection
+    const rosterNames = screenshotStats
+      ? {
+          team1: screenshotStats.team1.map((s) => s.name),
+          team2: screenshotStats.team2.map((s) => s.name),
+        }
+      : manualTeams;
+
+    if (rosterNames.team1.length === 0 || rosterNames.team2.length === 0) {
+      alert("Selecteer voor beide teams minstens één speler");
+      return;
+    }
+
+    const strengthOf = (name: string) =>
+      allPlayers.find((p) => p.name === name)?.strength ?? 1500;
+    const team1 = rosterNames.team1.map((name) => ({ name, strength: strengthOf(name) }));
+    const team2 = rosterNames.team2.map((name) => ({ name, strength: strengthOf(name) }));
 
     const score1 = parseInt(team1Score);
     const score2 = parseInt(team2Score);
@@ -139,18 +173,18 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
       ratings[playerName]?.rating ?? initialStrength;
 
     const team1AvgRating =
-      currentTeams.team1.reduce((sum, p) => {
+      team1.reduce((sum, p) => {
         return sum + getCurrentRating(p.name, p.strength);
-      }, 0) / currentTeams.team1.length;
+      }, 0) / team1.length;
 
     const team2AvgRating =
-      currentTeams.team2.reduce((sum, p) => {
+      team2.reduce((sum, p) => {
         return sum + getCurrentRating(p.name, p.strength);
-      }, 0) / currentTeams.team2.length;
+      }, 0) / team2.length;
 
     // Track team sizes for handicap coefficient adjustment
-    const team1Size = currentTeams.team1.length;
-    const team2Size = currentTeams.team2.length;
+    const team1Size = team1.length;
+    const team2Size = team2.length;
     const isUnevenMatch = team1Size !== team2Size;
 
     let ratingChanges: { [playerName: string]: number };
@@ -161,8 +195,8 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
       const ratedTeam = (team: PlayerStats[]) =>
         team.map((p) => ({ name: p.name, rating: getCurrentRating(p.name, p.strength) }));
       ratingChanges = calculatePerformanceRatingChanges({
-        team1: ratedTeam(currentTeams.team1),
-        team2: ratedTeam(currentTeams.team2),
+        team1: ratedTeam(team1),
+        team2: ratedTeam(team2),
         team1Score: score1,
         team2Score: score2,
         team1Stats: screenshotStats.team1,
@@ -173,7 +207,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
       ratingChanges = {};
       const team1Actual = winner === 1 ? 1 : winner === 0 ? 0.5 : 0;
 
-      currentTeams.team1.forEach((player) => {
+      team1.forEach((player) => {
         ratingChanges[player.name] = calculateRatingChange(
           team1AvgRating,
           team2AvgRating,
@@ -181,7 +215,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
         );
       });
 
-      currentTeams.team2.forEach((player) => {
+      team2.forEach((player) => {
         ratingChanges[player.name] = calculateRatingChange(
           team2AvgRating,
           team1AvgRating,
@@ -193,8 +227,8 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
     const match: MatchResult = {
       id: Date.now().toString(),
       date: new Date(),
-      team1: currentTeams.team1,
-      team2: currentTeams.team2,
+      team1,
+      team2,
       team1Score: score1,
       team2Score: score2,
       winner: winner as 0 | 1 | 2,
@@ -227,6 +261,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
     setTeam2Score("");
     setSelectedMap("");
     setScreenshotStats(null);
+    setManualTeams({ team1: [], team2: [] });
     handleDialogOpenChange(false);
   };
 
@@ -254,7 +289,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
             <Heading className="text-xl md:text-2xl font-display font-bold text-cyber-cyan">
               📊 Geschiedenis
             </Heading>
-            {currentTeams && (
+            {user && allPlayers.length > 0 && (
               <DialogRoot open={isRecordDialogOpen} onOpenChange={(e) => handleDialogOpenChange(e.open)}>
                 <DialogTrigger asChild>
                   <Button className="cyber-btn-primary px-4 py-2 rounded-lg shadow-lg hover:shadow-neon-cyan transition-all duration-300 hover:scale-105">
@@ -268,24 +303,40 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
                   <DialogBody className="flex flex-col gap-4">
                     <ScreenshotUpload onResult={handleScreenshotResult} dialogOpen={isRecordDialogOpen} />
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="font-display font-semibold mb-2 text-cyber-cyan">Team 1</p>
-                        <ul className="text-sm text-cyber-cyan/80">
-                          {currentTeams.team1.map((p) => (
-                            <li key={p.name}>{p.name}</li>
-                          ))}
-                        </ul>
+                    {!screenshotStats && (
+                      <div className="grid grid-cols-2 gap-4">
+                        {([1, 2] as const).map((teamNo) => (
+                          <div key={teamNo}>
+                            <p className={`font-display font-semibold mb-2 ${teamNo === 1 ? "text-cyber-cyan" : "text-cyber-pink"}`}>
+                              Team {teamNo}
+                            </p>
+                            <div className="flex flex-col gap-1">
+                              {allPlayers.map((p) => {
+                                const selected = (teamNo === 1 ? manualTeams.team1 : manualTeams.team2).includes(p.name);
+                                return (
+                                  <label
+                                    key={p.name}
+                                    className={`flex items-center gap-2 text-sm cursor-pointer select-none ${
+                                      selected
+                                        ? teamNo === 1 ? "text-cyber-cyan" : "text-cyber-pink"
+                                        : "text-gray-400 hover:text-gray-200"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={selected}
+                                      onChange={() => setManualTeams(toggleTeamMembership(manualTeams, teamNo, p.name))}
+                                      className="accent-current"
+                                    />
+                                    {p.name}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div>
-                        <p className="font-display font-semibold mb-2 text-cyber-pink">Team 2</p>
-                        <ul className="text-sm text-cyber-pink/80">
-                          {currentTeams.team2.map((p) => (
-                            <li key={p.name}>{p.name}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                       <Field label="Score Team 1">
