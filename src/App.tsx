@@ -11,6 +11,7 @@ import { useEffect, useState, useMemo } from "react";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { MatchHistory } from "./components/MatchHistory";
 import { PlayerStatsDisplay } from "./components/PlayerStats";
+import { RatingHistory } from "./components/RatingHistory";
 import { Auth } from "./components/Auth";
 import { getPlayerRatings, getHandicapCoefficient, getPlayers } from "./storage";
 import { useAuth } from "./auth/AuthContext";
@@ -571,6 +572,8 @@ function App() {
       <Auth />
 
       <PlayerStatsDisplay />
+
+      <RatingHistory refreshToken={ratingsVersion} />
 
       <MatchHistory
         currentTeams={user ? (selectedTeam || { team1: solutions[0]?.team1 || [], team2: solutions[0]?.team2 || [] }) : null}
