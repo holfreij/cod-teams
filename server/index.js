@@ -26,6 +26,9 @@ const {
   PORT = "3001",
 } = process.env;
 
+// Optioneel te overriden via ANTHROPIC_MODEL in .env (geen deploy nodig bij modelwissel)
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+
 if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required");
 if (!SUPABASE_URL) throw new Error("SUPABASE_URL is required");
 if (!SUPABASE_ANON_KEY) throw new Error("SUPABASE_ANON_KEY is required");
@@ -97,7 +100,7 @@ app.post("/api/analyze-screenshot", async (req, res) => {
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: ANTHROPIC_MODEL,
       max_tokens: 512,
       messages: [
         {
@@ -145,11 +148,11 @@ Rules:
     const result = JSON.parse(jsonMatch[0]);
     return res.json(result);
   } catch (err) {
-    console.error("Screenshot analysis error:", err.message);
+    console.error(`Screenshot analysis error (model: ${ANTHROPIC_MODEL}):`, err.status, err.message);
     return res.status(500).json({ error: "Analyse mislukt. Probeer het opnieuw." });
   }
 });
 
 app.listen(parseInt(PORT), "127.0.0.1", () => {
-  console.log(`Screenshot analysis server running on http://127.0.0.1:${PORT}`);
+  console.log(`Screenshot analysis server running on http://127.0.0.1:${PORT} (model: ${ANTHROPIC_MODEL})`);
 });
