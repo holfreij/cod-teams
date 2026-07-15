@@ -22,6 +22,7 @@ import {
   getPlayerRatings,
   getHandicapCoefficient,
   adjustHandicapCoefficient,
+  calculateUnevenTeamHandicap,
 } from "../storage";
 import { Field } from "@/components/ui/field";
 import { ScreenshotUpload } from "./ScreenshotUpload";
@@ -187,6 +188,20 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
     const team2Size = team2.length;
     const isUnevenMatch = team1Size !== team2Size;
 
+    // The larger team has a material advantage: treat the smaller team as
+    // `handicap` ELO points weaker when computing expected outcomes, so a
+    // larger team gains less for winning and a shorthanded team loses less
+    const coefficient = isUnevenMatch ? await getHandicapCoefficient() : 0;
+    const handicap = isUnevenMatch
+      ? calculateUnevenTeamHandicap(
+          Math.min(team1Size, team2Size),
+          Math.max(team1Size, team2Size),
+          coefficient
+        )
+      : 0;
+    const effectiveTeam1Avg = team1Size < team2Size ? team1AvgRating - handicap : team1AvgRating;
+    const effectiveTeam2Avg = team2Size < team1Size ? team2AvgRating - handicap : team2AvgRating;
+
     let ratingChanges: { [playerName: string]: number };
 
     if (screenshotStats) {
@@ -201,6 +216,7 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
         team2Score: score2,
         team1Stats: screenshotStats.team1,
         team2Stats: screenshotStats.team2,
+        handicap,
       });
     } else {
       // Manual entry: classic team ELO on the final result only
@@ -209,16 +225,16 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
 
       team1.forEach((player) => {
         ratingChanges[player.name] = calculateRatingChange(
-          team1AvgRating,
-          team2AvgRating,
+          effectiveTeam1Avg,
+          effectiveTeam2Avg,
           team1Actual
         );
       });
 
       team2.forEach((player) => {
         ratingChanges[player.name] = calculateRatingChange(
-          team2AvgRating,
-          team1AvgRating,
+          effectiveTeam2Avg,
+          effectiveTeam1Avg,
           1 - team1Actual
         );
       });
@@ -243,7 +259,6 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
 
     // Adjust handicap coefficient based on match outcome (for uneven matches)
     if (isUnevenMatch) {
-      const coefficient = await getHandicapCoefficient();
       const smallerTeamIsTeam1 = team1Size < team2Size;
       const smallerTeamWon = smallerTeamIsTeam1 ? (winner === 1) : (winner === 2);
 

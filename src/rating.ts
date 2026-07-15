@@ -14,6 +14,11 @@ export interface PerformanceMatchInput {
   team2Stats: PlayerMatchStats[];
   kFactor?: number;
   kPerf?: number;
+  // ELO points subtracted from the smaller team's average rating, reflecting
+  // the material disadvantage of playing shorthanded (see calculateUnevenTeamHandicap).
+  // Makes the larger team the expected winner, so they gain less for winning
+  // and the smaller team loses less for losing. Ignored for even teams.
+  handicap?: number;
 }
 
 // Margin-of-victory multiplier on the team delta: 10-9 -> 0.8, 10-0 -> 1.25
@@ -49,8 +54,9 @@ export const calculatePerformanceRatingChanges = (
 
   const avg = (players: RatedPlayer[]) =>
     players.reduce((sum, p) => sum + p.rating, 0) / players.length;
-  const team1Avg = avg(team1);
-  const team2Avg = avg(team2);
+  const handicap = input.handicap ?? 0;
+  const team1Avg = avg(team1) - (team1.length < team2.length ? handicap : 0);
+  const team2Avg = avg(team2) - (team2.length < team1.length ? handicap : 0);
 
   const team1Actual = team1Score > team2Score ? 1 : team1Score < team2Score ? 0 : 0.5;
   const mov = MOV_BASE + Math.abs(team1Score - team2Score) * MOV_PER_POINT;

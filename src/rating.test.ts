@@ -139,6 +139,32 @@ describe("calculatePerformanceRatingChanges", () => {
     expect(Object.keys(changes).sort()).toEqual(["A", "B", "C", "D"]);
   });
 
+  it("makes the larger team the favorite via the uneven-team handicap", () => {
+    const changes = calculatePerformanceRatingChanges({
+      team1: [player("A"), player("B"), player("C")],
+      team2: [player("D"), player("E"), player("F"), player("G")],
+      team1Score: 9,
+      team2Score: 10,
+      team1Stats: [stats("A", 2000), stats("B", 2000), stats("C", 2000)],
+      team2Stats: [stats("D", 2000), stats("E", 2000), stats("F", 2000), stats("G", 2000)],
+      handicap: 400, // smaller team's avg treated as 400 lower -> big team expected to win
+    });
+    expect(changes).toEqual({ A: -2, B: -2, C: -2, D: 2, E: 2, F: 2, G: 2 });
+  });
+
+  it("ignores the handicap for even teams", () => {
+    const changes = calculatePerformanceRatingChanges({
+      team1: [player("A")],
+      team2: [player("B")],
+      team1Score: 10,
+      team2Score: 9,
+      team1Stats: [stats("A", 2000)],
+      team2Stats: [stats("B", 2000)],
+      handicap: 400,
+    });
+    expect(changes).toEqual({ A: 13, B: -13 });
+  });
+
   it("applies no performance term when all scores are zero", () => {
     const changes = calculatePerformanceRatingChanges({
       team1: [player("A")],
