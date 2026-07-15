@@ -11,13 +11,14 @@ import {
   DialogCloseTrigger,
 } from "@/components/ui/dialog";
 import { Button, Card, Heading, Input } from "@chakra-ui/react";
-import { MatchResult, PlayerStats, ScreenshotAnalysisResult } from "../types";
+import { MatchResult, PlayerMatchStats, PlayerStats, ScreenshotAnalysisResult } from "../types";
 import {
   getMatchHistory,
   deleteMatch,
   saveMatchResult,
   updatePlayerRatings,
   calculateRatingChange,
+  calculatePerformanceRatingChanges,
   getPlayerRatings,
   getHandicapCoefficient,
   adjustHandicapCoefficient,
@@ -61,10 +62,23 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
   const [team2Score, setTeam2Score] = useState("");
   const [selectedMap, setSelectedMap] = useState("");
   const [displayCount, setDisplayCount] = useState(50);
+  const [screenshotStats, setScreenshotStats] = useState<{
+    team1: PlayerMatchStats[];
+    team2: PlayerMatchStats[];
+  } | null>(null);
 
-  const handleScreenshotResult = (result: ScreenshotAnalysisResult) => {
+  const handleScreenshotResult = (result: ScreenshotAnalysisResult | null) => {
+    if (!result) {
+      setScreenshotStats(null);
+      return;
+    }
     if (result.team1Score != null) setTeam1Score(String(result.team1Score));
     if (result.team2Score != null) setTeam2Score(String(result.team2Score));
+    setScreenshotStats(
+      result.team1Players.length || result.team2Players.length
+        ? { team1: result.team1Players, team2: result.team2Players }
+        : null
+    );
     if (result.map) {
       // Match against known maps (case-insensitive)
       const matched = maps.find(
@@ -124,12 +138,12 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
     const getCurrentRating = (playerName: string, initialStrength: number) =>
       ratings[playerName]?.rating ?? initialStrength;
 
-    let team1AvgRating =
+    const team1AvgRating =
       currentTeams.team1.reduce((sum, p) => {
         return sum + getCurrentRating(p.name, p.strength);
       }, 0) / currentTeams.team1.length;
 
-    let team2AvgRating =
+    const team2AvgRating =
       currentTeams.team2.reduce((sum, p) => {
         return sum + getCurrentRating(p.name, p.strength);
       }, 0) / currentTeams.team2.length;
@@ -139,25 +153,42 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
     const team2Size = currentTeams.team2.length;
     const isUnevenMatch = team1Size !== team2Size;
 
-    const ratingChanges: { [playerName: string]: number } = {};
+    let ratingChanges: { [playerName: string]: number };
 
-    // Calculate changes for team 1
-    currentTeams.team1.forEach((player) => {
-      ratingChanges[player.name] = calculateRatingChange(
-        team1AvgRating,
-        team2AvgRating,
-        winner === 1 || winner === 0
-      );
-    });
+    if (screenshotStats) {
+      // Screenshot with per-player stats: performance-weighted ELO
+      // (margin of victory + individual performance vs match average)
+      const ratedTeam = (team: PlayerStats[]) =>
+        team.map((p) => ({ name: p.name, rating: getCurrentRating(p.name, p.strength) }));
+      ratingChanges = calculatePerformanceRatingChanges({
+        team1: ratedTeam(currentTeams.team1),
+        team2: ratedTeam(currentTeams.team2),
+        team1Score: score1,
+        team2Score: score2,
+        team1Stats: screenshotStats.team1,
+        team2Stats: screenshotStats.team2,
+      });
+    } else {
+      // Manual entry: classic team ELO on the final result only
+      ratingChanges = {};
+      const team1Actual = winner === 1 ? 1 : winner === 0 ? 0.5 : 0;
 
-    // Calculate changes for team 2
-    currentTeams.team2.forEach((player) => {
-      ratingChanges[player.name] = calculateRatingChange(
-        team2AvgRating,
-        team1AvgRating,
-        winner === 2 || winner === 0
-      );
-    });
+      currentTeams.team1.forEach((player) => {
+        ratingChanges[player.name] = calculateRatingChange(
+          team1AvgRating,
+          team2AvgRating,
+          team1Actual
+        );
+      });
+
+      currentTeams.team2.forEach((player) => {
+        ratingChanges[player.name] = calculateRatingChange(
+          team2AvgRating,
+          team1AvgRating,
+          1 - team1Actual
+        );
+      });
+    }
 
     const match: MatchResult = {
       id: Date.now().toString(),
@@ -169,6 +200,8 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
       winner: winner as 0 | 1 | 2,
       mapPlayed: selectedMap || undefined,
       ratingChanges,
+      team1Stats: screenshotStats?.team1,
+      team2Stats: screenshotStats?.team2,
     };
 
     await saveMatchResult(match);
@@ -193,6 +226,7 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
     setTeam1Score("");
     setTeam2Score("");
     setSelectedMap("");
+    setScreenshotStats(null);
     handleDialogOpenChange(false);
   };
 
@@ -203,6 +237,8 @@ export const MatchHistory = ({ currentTeams, onRatingsUpdate, maps, externalDial
       const history = await getMatchHistory();
       setMatchHistory(history);
       setLoading(false);
+      // deleteMatch recomputes all ratings from the remaining history
+      onRatingsUpdate();
     }
   };
 

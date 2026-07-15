@@ -101,7 +101,7 @@ app.post("/api/analyze-screenshot", async (req, res) => {
   try {
     const response = await anthropic.messages.create({
       model: ANTHROPIC_MODEL,
-      max_tokens: 512,
+      max_tokens: 1500,
       messages: [
         {
           role: "user",
@@ -119,10 +119,10 @@ app.post("/api/analyze-screenshot", async (req, res) => {
               text: `Analyze this Call of Duty Search and Destroy match result screenshot.
 
 Screenshot layout:
-- At the top: a "WON" or "LOST" indicator (ignore this).
+- At the top: a "WON" or "LOST" indicator showing the result for the player who took the screenshot.
 - Below that: a line reading "Search and Destroy | <map name>" with match time on the far right (ignore the time).
 - Two vertically stacked tables (top table = team 1, bottom table = team 2).
-- On the left side of each table: the team's total round score. The winning team always has 10, the losing team 0-9.
+- The team's total round score is shown as a VERY LARGE numeral to the left of each team's player table. The winning team's round score is always exactly 10; the losing team's is 0-9.
 - Team names like "Allegiance" and "Coalition" are generic labels — ignore them.
 - Each table lists the players on that team with 6 columns:
   1. Player name — often prefixed with [QMG] or [<QMG>] and suffixed with #1234567 (ignore prefix and suffix)
@@ -165,7 +165,8 @@ Rules:
 - team1 is the top table, team2 is the bottom table
 - Use the real names from the mapping above, not the gamer tags
 - If a gamer tag doesn't match any known player, use the cleaned tag (without prefix/suffix) as the name
-- If you cannot determine scores, return {"team1Score": null, "team2Score": null, "team1Players": [], "team2Players": [], "map": null, "confidence": 0}
+- team1Score/team2Score are the large round-score numerals left of the tables. Always extract them: one team has exactly 10, the other 0-9. Cross-check with the WON/LOST indicator at the top. Only use null for a round score if the numeral is truly not visible in the screenshot.
+- If a specific value is unreadable, set just that value to null and lower the confidence; still return everything you could read
 - confidence should reflect how certain you are about the extracted values`,
             },
           ],
@@ -174,14 +175,28 @@ Rules:
     });
 
     const text = response.content[0]?.type === "text" ? response.content[0].text : "";
+    console.log(
+      `Screenshot analysis response (stop: ${response.stop_reason}):`,
+      text.replace(/\s+/g, " ").slice(0, 600)
+    );
 
     // Parse JSON from response (handle potential markdown wrapping)
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error("No JSON found in model response");
       return res.status(500).json({ error: "Could not parse AI response" });
     }
 
-    const result = JSON.parse(jsonMatch[0]);
+    let result;
+    try {
+      result = JSON.parse(jsonMatch[0]);
+    } catch (parseErr) {
+      console.error(
+        `JSON parse failed (stop: ${response.stop_reason}, len: ${text.length}):`,
+        parseErr.message
+      );
+      return res.status(500).json({ error: "Could not parse AI response" });
+    }
     return res.json(result);
   } catch (err) {
     console.error(`Screenshot analysis error (model: ${ANTHROPIC_MODEL}):`, err.status, err.message);

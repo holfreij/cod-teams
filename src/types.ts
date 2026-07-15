@@ -13,6 +13,9 @@ export interface MatchResult {
   winner: 1 | 2 | 0; // 0 = draw
   mapPlayed?: string;
   ratingChanges: { [playerName: string]: number };
+  // Per-player scoreboard stats from screenshot analysis (absent for manual entries)
+  team1Stats?: PlayerMatchStats[];
+  team2Stats?: PlayerMatchStats[];
 }
 
 export interface PlayerMatchStats {

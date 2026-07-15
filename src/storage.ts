@@ -1,5 +1,8 @@
-import { MatchResult, PlayerRating } from './types';
+import { MatchResult, PlayerMatchStats, PlayerRating } from './types';
 import { supabase } from './supabaseClient';
+import { recomputeRatings } from './rating';
+
+export { calculateRatingChange, calculatePerformanceRatingChanges } from './rating';
 
 const MATCH_HISTORY_KEY = 'qmg_match_history';
 const PLAYER_RATINGS_KEY = 'qmg_player_ratings';
@@ -16,6 +19,7 @@ interface SupabaseMatchRow {
   winner: number;
   map_played: string | null;
   rating_changes: Record<string, number>;
+  player_stats: { team1: PlayerMatchStats[]; team2: PlayerMatchStats[] } | null;
 }
 
 interface SupabasePlayerRatingRow {
@@ -41,6 +45,7 @@ const isSupabaseConfigured = () => {
 export const saveMatchResult = async (match: MatchResult): Promise<void> => {
   if (isSupabaseConfigured()) {
     try {
+      const hasStats = !!(match.team1Stats?.length || match.team2Stats?.length);
       const { error } = await supabase.from('match_history').insert({
         id: match.id,
         date: match.date.toISOString(),
@@ -51,6 +56,14 @@ export const saveMatchResult = async (match: MatchResult): Promise<void> => {
         winner: match.winner,
         map_played: match.mapPlayed || null,
         rating_changes: match.ratingChanges,
+        // Only sent when present so manual entries keep working if the
+        // player_stats column migration hasn't been applied yet
+        ...(hasStats && {
+          player_stats: {
+            team1: match.team1Stats ?? [],
+            team2: match.team2Stats ?? [],
+          },
+        }),
       });
       if (error) throw error;
       return;
@@ -85,6 +98,8 @@ export const getMatchHistory = async (): Promise<MatchResult[]> => {
         winner: row.winner as 0 | 1 | 2,
         mapPlayed: row.map_played || undefined,
         ratingChanges: row.rating_changes,
+        team1Stats: row.player_stats?.team1,
+        team2Stats: row.player_stats?.team2,
       }));
     } catch (error) {
       console.error('Error fetching from Supabase, falling back to localStorage:', error);
@@ -125,6 +140,7 @@ export const deleteMatch = async (matchId: string): Promise<void> => {
     try {
       const { error } = await supabase.from('match_history').delete().eq('id', matchId);
       if (error) throw error;
+      await recomputeRatingsFromHistory();
       return;
     } catch (error) {
       console.error('Error deleting from Supabase, falling back to localStorage:', error);
@@ -134,6 +150,18 @@ export const deleteMatch = async (matchId: string): Promise<void> => {
   const history = await getMatchHistory();
   const filtered = history.filter(match => match.id !== matchId);
   localStorage.setItem(MATCH_HISTORY_KEY, JSON.stringify(filtered));
+  await recomputeRatingsFromHistory();
+};
+
+// Rebuild all ratings from initial ELOs + stored per-match rating changes.
+// Used after deleting a match so its rating effects are reversed.
+export const recomputeRatingsFromHistory = async (): Promise<void> => {
+  const [players, history] = await Promise.all([getPlayers(), getMatchHistory()]);
+  const ratings = recomputeRatings(
+    players.map(p => ({ name: p.name, initialElo: p.initialElo })),
+    history
+  );
+  await savePlayerRatings(ratings);
 };
 
 // Player Ratings functions
@@ -326,20 +354,6 @@ export const adjustHandicapCoefficient = async (
   await updateHandicapCoefficient(newCoefficient);
 
   return newCoefficient;
-};
-
-// Calculate rating change based on ELO system
-// Using standard k-factor of 32 for active players
-// Note: Individual player rating isn't used; only team averages matter for fair team-based ELO
-export const calculateRatingChange = (
-  teamAvgRating: number,
-  opponentAvgRating: number,
-  won: boolean,
-  kFactor: number = 32
-): number => {
-  const expectedScore = 1 / (1 + Math.pow(10, (opponentAvgRating - teamAvgRating) / 400));
-  const actualScore = won ? 1 : 0;
-  return Math.round(kFactor * (actualScore - expectedScore));
 };
 
 // Player Management functions

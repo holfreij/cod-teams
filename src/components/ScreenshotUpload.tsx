@@ -4,7 +4,8 @@ import { analyzeScreenshot } from "../services/screenshotAnalyzer";
 import type { ScreenshotAnalysisResult, PlayerMatchStats } from "../types";
 
 interface ScreenshotUploadProps {
-  onResult: (result: ScreenshotAnalysisResult) => void;
+  // null = screenshot removed, previously reported stats no longer apply
+  onResult: (result: ScreenshotAnalysisResult | null) => void;
   dialogOpen: boolean;
 }
 
@@ -103,6 +104,7 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
     setLoading(false);
     setResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    onResult(null);
   };
 
   return (
@@ -167,20 +169,33 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
           </div>
 
           {result && (result.team1Players.length > 0 || result.team2Players.length > 0) && (
-            <div className="grid grid-cols-2 gap-3 mt-1">
-              {result.team1Players.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-cyber-cyan mb-1">Team 1</p>
-                  <StatsTable players={result.team1Players} teamColor="cyber-cyan" />
-                </div>
+            <>
+              {result.team1Score != null && result.team2Score != null ? (
+                <p className="text-sm font-display font-semibold text-center mt-1">
+                  <span className="text-cyber-cyan">Team 1: {result.team1Score}</span>
+                  <span className="text-gray-500 mx-2">—</span>
+                  <span className="text-cyber-pink">Team 2: {result.team2Score}</span>
+                </p>
+              ) : (
+                <p className="text-yellow-400 text-xs text-center mt-1">
+                  Eindstand niet herkend — vul de scores handmatig in
+                </p>
               )}
-              {result.team2Players.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-cyber-pink mb-1">Team 2</p>
-                  <StatsTable players={result.team2Players} teamColor="cyber-pink" />
-                </div>
-              )}
-            </div>
+              <div className="grid grid-cols-2 gap-3 mt-1">
+                {result.team1Players.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-cyber-cyan mb-1">Team 1</p>
+                    <StatsTable players={result.team1Players} teamColor="cyber-cyan" />
+                  </div>
+                )}
+                {result.team2Players.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-cyber-pink mb-1">Team 2</p>
+                    <StatsTable players={result.team2Players} teamColor="cyber-pink" />
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       )}

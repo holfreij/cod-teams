@@ -127,6 +127,8 @@ CREATE TABLE public.match_history (
   winner INTEGER NOT NULL CHECK (winner IN (0, 1, 2)),
   map_played TEXT,
   rating_changes JSONB NOT NULL,
+  -- Per-player scoreboard stats from screenshot analysis: {"team1": [...], "team2": [...]}
+  player_stats JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
