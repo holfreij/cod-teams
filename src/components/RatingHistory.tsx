@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Card, Heading } from "@chakra-ui/react";
 import {
   LineChart,
@@ -11,7 +11,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { getPlayers, getMatchHistory } from "../storage";
-import { buildRatingTimeline, RatingTimelineRow } from "../ratingTimeline";
+import { buildRatingTimeline, countGamesPerPlayer, RatingTimelineRow } from "../ratingTimeline";
+
+// Players with fewer matches than this start hidden in the chart
+// (still listed in the legend — click to show them)
+const MIN_GAMES_SHOWN_BY_DEFAULT = 15;
 
 const LINE_COLORS = [
   "#00ffff",
@@ -67,11 +71,25 @@ export const RatingHistory = ({ refreshToken = 0 }: RatingHistoryProps) => {
   const [timeline, setTimeline] = useState<RatingTimelineRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const hiddenInitialized = useRef(false);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       const [players, matches] = await Promise.all([getPlayers(), getMatchHistory()]);
+      // Hide low-activity players by default, but only on first load so
+      // refreshes don't undo the user's legend toggles
+      if (!hiddenInitialized.current) {
+        hiddenInitialized.current = true;
+        const games = countGamesPerPlayer(matches);
+        setHidden(
+          new Set(
+            players
+              .map((p) => p.name)
+              .filter((name) => (games[name] ?? 0) < MIN_GAMES_SHOWN_BY_DEFAULT)
+          )
+        );
+      }
       setTimeline(
         buildRatingTimeline(
           players.map((p) => ({ name: p.name, initialElo: p.initialElo })),

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildRatingTimeline } from "./ratingTimeline";
+import { buildRatingTimeline, countGamesPerPlayer } from "./ratingTimeline";
 import { MatchResult } from "./types";
 
 const makeMatch = (overrides: Partial<MatchResult>): MatchResult => ({
@@ -69,5 +69,19 @@ describe("buildRatingTimeline", () => {
     const timeline = buildRatingTimeline([], matches);
     expect(timeline[0].ratings.Dave).toBe(1500);
     expect(timeline[1].ratings.Dave).toBe(1507);
+  });
+});
+
+describe("countGamesPerPlayer", () => {
+  it("counts how many matches each player appears in", () => {
+    const matches = [
+      makeMatch({ id: "1", ratingChanges: { Alice: 10, Bob: -10 } }),
+      makeMatch({ id: "2", ratingChanges: { Alice: -5, Carol: 5 } }),
+    ];
+    expect(countGamesPerPlayer(matches)).toEqual({ Alice: 2, Bob: 1, Carol: 1 });
+  });
+
+  it("returns an empty object for no matches", () => {
+    expect(countGamesPerPlayer([])).toEqual({});
   });
 });

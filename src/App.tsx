@@ -17,6 +17,9 @@ import { getPlayerRatings, getHandicapCoefficient, getPlayers } from "./storage"
 import { useAuth } from "./auth/AuthContext";
 import { useDebounce } from "./hooks/useDebounce";
 
+// Players who rarely join sessions: unchecked by default in "Selecteer spelers"
+const RARELY_PRESENT_PLAYERS = ["Arjan", "Guido", "Jan-Joost"];
+
 // Default player list (fallback if Supabase/localStorage is empty)
 // Players now use pure ELO ratings (standard chess-style system)
 const DEFAULT_PLAYERS: PlayerStats[] = [
@@ -131,7 +134,9 @@ const getBackgroundStyle = (strengthDifference: number) => {
 function App() {
   const [playerStats, setPlayerStats] = useState<PlayerStats[]>(DEFAULT_PLAYERS);
   const [activePlayers, setActivePlayers] = useState<string[]>(
-    DEFAULT_PLAYERS.map((player) => player.name)
+    DEFAULT_PLAYERS.map((player) => player.name).filter(
+      (name) => !RARELY_PRESENT_PLAYERS.includes(name)
+    )
   );
   const [buffedPlayers, setBuffedPlayers] = useState<string[]>([]);
   const [nerfedPlayers, setNerfedPlayers] = useState<string[]>([]);
@@ -169,7 +174,9 @@ function App() {
           strength: p.initialElo,
         }));
         setPlayerStats(stats);
-        setActivePlayers(stats.map(p => p.name));
+        setActivePlayers(
+          stats.map(p => p.name).filter(name => !RARELY_PRESENT_PLAYERS.includes(name))
+        );
       }
     };
     loadPlayers();
