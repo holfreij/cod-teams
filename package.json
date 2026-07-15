@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "VITE_BASE_PATH=/ npm run build && rsync -a --delete dist/ /var/www/qmg.rolf.bible/html/"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.5.1",
