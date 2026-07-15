@@ -10,22 +10,26 @@
 
 ## Quick Facts
 
-- **Tech Stack**: React 18.3 + TypeScript 5.6 + Vite 6.0 + Chakra UI 3.5 + Tailwind CSS 4.0
-- **Backend**: Supabase (PostgreSQL + Auth) with localStorage fallback
+- **Tech Stack**: React 18.3 + TypeScript 5.6 + Vite 6.0 + Chakra UI 3.5 + Tailwind CSS 4.0 + Recharts
+- **Backend**: Supabase (PostgreSQL + Auth) with localStorage fallback, plus a small Express server (`server/`) for AI screenshot analysis
 - **Language**: UI text is in Dutch (Nederlandse)
-- **Deployment**: GitHub Pages via GitHub Actions
-- **Lines of Code**: ~2,000 lines
-- **Branch**: `claude/init-and-update-docs-nQIKw`
+- **Deployment**: PRODUCTION is self-hosted at https://qmg.rolf.bible via `npm run deploy` (build with `VITE_BASE_PATH=/` + rsync to nginx webroot). The GitHub Pages workflow deploys a SEPARATE copy to github.io — that is NOT the production site. A plain `npm run build` uses base path `/cod-teams/` and will blank-page qmg.rolf.bible if rsynced.
+- **Tests**: vitest (`npm test`) covers the rating math (src/*.test.ts)
+- **Branch**: work happens directly on `main`
 
 ---
 
 ## Critical File Map
 
 ### Core Application Logic
-- **`src/App.tsx`** (556 lines) - Main component, state management, UI orchestration
-- **`src/algorithm.ts`** (251 lines) - Team balancing algorithm, combination generation
-- **`src/storage.ts`** (429 lines) - Data persistence (Supabase + localStorage), ELO calculations
-- **`src/types.ts`** - TypeScript interfaces (Player, Team, Solution, MatchResult)
+- **`src/App.tsx`** - Main component, state management, UI orchestration
+- **`src/algorithm.ts`** - Team balancing algorithm, combination generation
+- **`src/rating.ts`** - Pure rating math: classic team ELO, performance-weighted ELO (screenshot matches), recompute-from-history. Unit tested in `src/rating.test.ts`.
+- **`src/ratingTimeline.ts`** - Replays match history into the rating-over-time chart data
+- **`src/teamSelection.ts`** - Manual roster picker state logic (one team per player)
+- **`src/storage.ts`** - Data persistence (Supabase + localStorage fallback)
+- **`src/types.ts`** - TypeScript interfaces (PlayerStats, MatchResult, PlayerMatchStats, ScreenshotAnalysisResult)
+- **`server/index.js`** - Express server: analyzes CoD scoreboard screenshots via the Anthropic API. Runs as systemd service `cod-teams-server` on the production box; restart required after changes (sudo, ask Rolf).
 
 ### Components
 - **`src/components/MatchHistory.tsx`** - Match recording dialog, history display, ELO updates
@@ -66,20 +70,31 @@ handicap = coefficient × (1 - smallerTeamSize / largerTeamSize)
 ```
 This value is **subtracted from smaller team's strength**, forcing the algorithm to assign stronger players to compensate.
 
-### 2. ELO Rating System (`storage.ts`)
-```typescript
-calculateRatingChange(playerRating, opponentAvg, actualScore, kFactor=32)
-```
-- Chess-style ELO system (starting: 1500)
-- Uses team average ratings
-- Win = 1.0, Draw = 0.5, Loss = 0.0
-- K-Factor: 32 (active players)
+### 2. ELO Rating System (`rating.ts`)
+Two paths, chosen at record time in `MatchHistory.tsx`:
 
-**Formula**:
+**Manual entries** — `calculateRatingChange(teamAvg, opponentAvg, actualScore, kFactor=32)`:
 ```
-expectedScore = 1 / (1 + 10^((opponentAvg - playerRating) / 400))
-ratingChange = 32 × (actualScore - expectedScore)
+expectedScore = 1 / (1 + 10^((opponentAvg - teamAvg) / 400))
+ratingChange = 32 × (actualScore - expectedScore)   // actualScore: 1 win, 0.5 draw, 0 loss
 ```
+
+**Screenshot matches** (per-player stats available) — `calculatePerformanceRatingChanges`:
+```
+delta = MoV × teamDelta + kPerf × clamp(playerScore / matchMeanScore - 1, -1, +1)
+```
+- MoV (margin of victory): 0.75 + margin/20 → 10-9 counts 0.8×, 10-0 counts 1.25×
+- kPerf = 16: strong losers can gain rating, weak winners can lose it
+- Performance term sums to ~0 across the lobby (no inflation)
+
+**Uneven teams (both paths)**: the adaptive handicap coefficient is subtracted from the
+smaller team's average before computing expectations, so the larger team is the expected
+winner (wins earn less, shorthanded losses cost less).
+
+**Consistency invariant**: `player_ratings` must always equal `players.initial_elo` +
+sum of `match_history.rating_changes`. Deleting a match triggers a full recompute
+(`recomputeRatingsFromHistory`). The rating graph replays the same ledger, so the
+leaderboard and the chart endpoint always agree. Verify with `node scripts/verify-ratings.mjs`.
 
 ### 3. Adaptive Handicap Coefficient
 - Auto-adjusts based on match outcomes
@@ -211,9 +226,7 @@ npm run lint
 ```
 
 ### Git Workflow
-- **Branch**: `claude/init-and-update-docs-nQIKw`
-- **Push**: `git push -u origin claude/init-and-update-docs-nQIKw`
-- **Retry logic**: If network errors, retry up to 4 times with exponential backoff
+- Work happens directly on `main`; commit and push after each verified feature
 
 ---
 
@@ -297,22 +310,23 @@ VITE_BASE_PATH=/cod-teams/  # Default for GitHub Pages
 
 ## Deployment
 
-### GitHub Pages (Automatic)
-1. Push to `main` branch
-2. GitHub Actions runs `.github/workflows/jekyll-gh-pages.yml`
-3. Builds with Supabase secrets from repository settings
-4. Deploys to `https://[username].github.io/cod-teams/`
+### Production: qmg.rolf.bible (self-hosted, THIS machine)
+1. Frontend: `npm run deploy` — builds with `VITE_BASE_PATH=/` and rsyncs `dist/` to
+   `/var/www/qmg.rolf.bible/html` (nginx webroot). NEVER rsync a plain `npm run build`:
+   the default base path `/cod-teams/` blank-pages the site.
+2. Backend: nginx proxies `/api/` to the `cod-teams-server` systemd service, which runs
+   `server/index.js` straight from this repo's working tree. Server changes require
+   `sudo systemctl restart cod-teams-server` (Claude has no sudo — ask Rolf).
+3. Schema changes: only anon keys exist on this box; DDL goes through the Supabase
+   dashboard SQL editor (ask Rolf to run it).
+4. Users with open tabs keep running the old bundle after a deploy (no cache headers);
+   a hard refresh is needed to pick up changes.
+5. Verify deploys by rendering in a real browser (`npx playwright screenshot ...`),
+   not just curl.
 
-**Requires**:
-- GitHub Secrets configured:
-  - `VITE_SUPABASE_URL`
-  - `VITE_SUPABASE_ANON_KEY`
-- GitHub Pages enabled in repository settings
-
-### Other Platforms
-- Vercel: `npm run build` → deploy `dist/`
-- Netlify: Same as above
-- Any static host
+### GitHub Pages (secondary copy, automatic)
+Push to `main` → `.github/workflows/jekyll-gh-pages.yml` builds (base `/cod-teams/`,
+Supabase secrets from repo settings) and deploys to github.io. Not the production site.
 
 ---
 
@@ -387,7 +401,7 @@ Before deploying changes:
 ## Known Limitations
 
 1. **Language**: Hardcoded Dutch UI text (no i18n)
-2. **Testing**: No automated unit/integration tests
+2. **Testing**: vitest covers the rating/domain math; no component/integration tests
 3. **Offline**: Requires localStorage for offline functionality
 4. **Scale**: Algorithm may slow with 100+ players (unlikely use case)
 5. **Auth**: Only email magic link (no OAuth providers configured)
@@ -415,7 +429,7 @@ If adding new features, consider:
 1. **Always read files before editing**: Use `Read` tool first
 2. **UI text is Dutch**: Don't assume English labels
 3. **Dual storage**: Changes to data layer must work for both Supabase and localStorage
-4. **Branch requirement**: All work goes to `claude/init-and-update-docs-nQIKw`
+4. **TDD the rating math**: pure logic lives in `src/rating.ts` / `src/ratingTimeline.ts` / `src/teamSelection.ts` with tests — extend tests first
 5. **ELO handicap logic**: Handicap is SUBTRACTED from smaller team (see comments in `algorithm.ts:133-146`)
 6. **Debouncing**: Don't remove debounce hooks - they prevent performance issues
 7. **Type safety**: Maintain strict TypeScript types
