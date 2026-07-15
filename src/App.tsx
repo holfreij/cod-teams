@@ -571,7 +571,7 @@ function App() {
 
       <Auth />
 
-      <PlayerStatsDisplay />
+      <PlayerStatsDisplay refreshToken={ratingsVersion} />
 
       <RatingHistory refreshToken={ratingsVersion} />
 

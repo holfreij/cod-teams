@@ -3,7 +3,12 @@ import { Card, Heading } from "@chakra-ui/react";
 import { getPlayerRatings } from "../storage";
 import { PlayerRating } from "../types";
 
-export const PlayerStatsDisplay = () => {
+interface PlayerStatsDisplayProps {
+  // Bump to re-fetch ratings (e.g. after a match is recorded or deleted)
+  refreshToken?: number;
+}
+
+export const PlayerStatsDisplay = ({ refreshToken = 0 }: PlayerStatsDisplayProps) => {
   const [playerList, setPlayerList] = useState<PlayerRating[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +23,7 @@ export const PlayerStatsDisplay = () => {
       setLoading(false);
     };
     loadRatings();
-  }, []);
+  }, [refreshToken]);
 
   if (loading) {
     return (
@@ -69,20 +74,13 @@ export const PlayerStatsDisplay = () => {
                       ? ((player.wins / player.gamesPlayed) * 100).toFixed(1)
                       : "0.0";
 
-                  const getRatingColor = (rating: number) => {
-                    if (rating > 50) return "text-green-400";
-                    if (rating < -50) return "text-red-400";
-                    return "text-yellow-400";
-                  };
-
                   return (
                     <tr
                       key={player.name}
                       className="border-b border-cyber-dark-secondary hover:bg-cyber-dark-secondary/50 transition-colors"
                     >
                       <td className="py-2 px-2 font-semibold text-cyber-cyan">{player.name}</td>
-                      <td className={`py-2 px-2 text-center font-bold ${getRatingColor(player.rating)}`}>
-                        {player.rating > 0 ? "+" : ""}
+                      <td className="py-2 px-2 text-center font-bold text-white">
                         {player.rating}
                       </td>
                       <td className="py-2 px-2 text-center">{player.gamesPlayed}</td>

@@ -1,40 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@chakra-ui/react";
 import { analyzeScreenshot } from "../services/screenshotAnalyzer";
-import type { ScreenshotAnalysisResult, PlayerMatchStats } from "../types";
+import type { ScreenshotAnalysisResult } from "../types";
+import { StatsTable } from "./StatsTable";
 
 interface ScreenshotUploadProps {
   // null = screenshot removed, previously reported stats no longer apply
   onResult: (result: ScreenshotAnalysisResult | null) => void;
   dialogOpen: boolean;
 }
-
-const StatsTable = ({ players, teamColor }: { players: PlayerMatchStats[]; teamColor: string }) => (
-  <table className="w-full text-xs">
-    <thead>
-      <tr className={`text-${teamColor}/70`}>
-        <th className="text-left font-medium py-0.5">Speler</th>
-        <th className="text-right font-medium py-0.5">Score</th>
-        <th className="text-right font-medium py-0.5">K</th>
-        <th className="text-right font-medium py-0.5">D</th>
-        <th className="text-right font-medium py-0.5">P</th>
-        <th className="text-right font-medium py-0.5">Def</th>
-      </tr>
-    </thead>
-    <tbody>
-      {players.map((p) => (
-        <tr key={p.name} className="text-gray-300">
-          <td className={`text-left py-0.5 text-${teamColor}`}>{p.name}</td>
-          <td className="text-right py-0.5">{p.score}</td>
-          <td className="text-right py-0.5">{p.kills}</td>
-          <td className="text-right py-0.5">{p.deaths}</td>
-          <td className="text-right py-0.5">{p.plants}</td>
-          <td className="text-right py-0.5">{p.defuses}</td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-);
 
 export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps) => {
   const [loading, setLoading] = useState(false);

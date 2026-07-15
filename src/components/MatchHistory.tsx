@@ -26,6 +26,7 @@ import {
 } from "../storage";
 import { Field } from "@/components/ui/field";
 import { ScreenshotUpload } from "./ScreenshotUpload";
+import { StatsTable, RatingDelta } from "./StatsTable";
 import { TeamSelection, toggleTeamMembership } from "../teamSelection";
 
 interface MapInfo {
@@ -422,7 +423,16 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
                 {matchHistory
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .slice(0, displayCount)
-                  .map((match) => (
+                  .map((match) => {
+                  const hasStats = !!(match.team1Stats?.length && match.team2Stats?.length);
+                  const nameList = (team: PlayerStats[]) =>
+                    team.map((p, i) => (
+                      <span key={p.name} className="whitespace-nowrap">
+                        {i > 0 && ", "}
+                        {p.name} <RatingDelta change={match.ratingChanges[p.name]} />
+                      </span>
+                    ));
+                  return (
                   <Card.Root
                     key={match.id}
                     className="glass-card hover:border-cyber-cyan/30 transition-all"
@@ -447,9 +457,11 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
 
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex-1">
-                            <div className="text-sm font-semibold mb-1 text-cyber-cyan">
-                              {match.team1.map((p) => p.name).join(", ")}
-                            </div>
+                            {!hasStats && (
+                              <div className="text-sm font-semibold mb-1 text-cyber-cyan">
+                                {nameList(match.team1)}
+                              </div>
+                            )}
                             <div className={`text-2xl font-display font-bold ${match.winner === 1 ? 'text-green-400' : match.winner === 2 ? 'text-cyber-pink' : 'text-yellow-400'}`}>
                               {match.team1Score}
                             </div>
@@ -458,18 +470,36 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
                           <div className="text-xl font-display font-bold text-cyber-pink">VS</div>
 
                           <div className="flex-1 text-right">
-                            <div className="text-sm font-semibold mb-1 text-cyber-cyan">
-                              {match.team2.map((p) => p.name).join(", ")}
-                            </div>
+                            {!hasStats && (
+                              <div className="text-sm font-semibold mb-1 text-cyber-cyan">
+                                {nameList(match.team2)}
+                              </div>
+                            )}
                             <div className={`text-2xl font-display font-bold ${match.winner === 2 ? 'text-green-400' : match.winner === 1 ? 'text-cyber-pink' : 'text-yellow-400'}`}>
                               {match.team2Score}
                             </div>
                           </div>
                         </div>
+
+                        {hasStats && (
+                          <div className="grid grid-cols-2 gap-3">
+                            <StatsTable
+                              players={match.team1Stats!}
+                              teamColor="cyber-cyan"
+                              ratingChanges={match.ratingChanges}
+                            />
+                            <StatsTable
+                              players={match.team2Stats!}
+                              teamColor="cyber-pink"
+                              ratingChanges={match.ratingChanges}
+                            />
+                          </div>
+                        )}
                       </div>
                     </Card.Body>
                   </Card.Root>
-                ))}
+                  );
+                })}
               </div>
               {matchHistory.length > displayCount && (
                 <Button
