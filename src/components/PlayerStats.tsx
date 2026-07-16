@@ -63,7 +63,6 @@ export const PlayerStatsDisplay = ({ refreshToken = 0 }: PlayerStatsDisplayProps
                   <th className="text-center py-2 px-2 text-cyber-cyan font-display">Gespeeld</th>
                   <th className="text-center py-2 px-2 text-cyber-cyan font-display">W</th>
                   <th className="text-center py-2 px-2 text-cyber-cyan font-display">L</th>
-                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">D</th>
                   <th className="text-center py-2 px-2 text-cyber-cyan font-display">Win %</th>
                 </tr>
               </thead>
@@ -86,7 +85,6 @@ export const PlayerStatsDisplay = ({ refreshToken = 0 }: PlayerStatsDisplayProps
                       <td className="py-2 px-2 text-center">{player.gamesPlayed}</td>
                       <td className="py-2 px-2 text-center text-cyber-cyan">{player.wins}</td>
                       <td className="py-2 px-2 text-center text-cyber-pink">{player.losses}</td>
-                      <td className="py-2 px-2 text-center text-gray-400">{player.draws}</td>
                       <td className="py-2 px-2 text-center">{winRate}%</td>
                     </tr>
                   );
