@@ -18,8 +18,9 @@ export const countGamesPerPlayer = (
 };
 
 // Replay stored per-match rating changes into a chart-ready time series:
-// a baseline row with everyone at their initial ELO, then one row per match
-// with all ratings carried forward. Works retroactively on the full history.
+// a baseline row with everyone at their initial ELO (dated the day before the
+// first match), then ONE row per calendar day with the end-of-day ratings.
+// Works retroactively on the full history.
 export const buildRatingTimeline = (
   players: { name: string; initialElo: number }[],
   matches: MatchResult[]
@@ -38,15 +39,27 @@ export const buildRatingTimeline = (
     });
   });
 
+  const dayOf = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  const firstDay = dayOf(new Date(sorted[0].date));
   const rows: RatingTimelineRow[] = [
-    { date: new Date(sorted[0].date), ratings: { ...current } },
+    {
+      date: new Date(firstDay.getFullYear(), firstDay.getMonth(), firstDay.getDate() - 1),
+      ratings: { ...current },
+    },
   ];
 
   sorted.forEach((match) => {
     Object.entries(match.ratingChanges).forEach(([name, change]) => {
       current[name] += change;
     });
-    rows.push({ date: new Date(match.date), ratings: { ...current } });
+    const day = dayOf(new Date(match.date));
+    const lastRow = rows[rows.length - 1];
+    if (lastRow.date.getTime() === day.getTime()) {
+      lastRow.ratings = { ...current };
+    } else {
+      rows.push({ date: day, ratings: { ...current } });
+    }
   });
 
   return rows;
