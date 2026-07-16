@@ -285,3 +285,10 @@ body {
 .rating-chart .recharts-line path {
   filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.25));
 }
+
+/* On narrow screens the date ticks overlap - hide them, the tooltip has full dates */
+@media (max-width: 640px) {
+  .rating-chart .recharts-xAxis-tick-labels {
+    display: none;
+  }
+}

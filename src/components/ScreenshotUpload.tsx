@@ -155,7 +155,7 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
                   Eindstand niet herkend — vul de scores handmatig in
                 </p>
               )}
-              <div className="grid grid-cols-2 gap-3 mt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
                 {result.team1Players.length > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-cyber-cyan mb-1">Team 1</p>

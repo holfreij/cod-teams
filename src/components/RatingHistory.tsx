@@ -154,6 +154,7 @@ export const RatingHistory = ({ refreshToken = 0 }: RatingHistoryProps) => {
                     tickFormatter={formatDate}
                     stroke="rgba(255,255,255,0.15)"
                     tick={{ fill: "#9ca3af", fontSize: 11 }}
+                    minTickGap={40}
                   />
                   <YAxis
                     width={45}
