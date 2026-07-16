@@ -21,9 +21,15 @@ export interface PerformanceMatchInput {
   handicap?: number;
 }
 
-// Margin-of-victory multiplier on the team delta: 10-9 -> 0.8, 10-0 -> 1.25
+export const DEFAULT_K_FACTOR = 32;
+
+// Margin-of-victory multiplier on the team delta: 10-9 -> 0.8, 10-0 -> 1.25.
+// Applies to both rating paths (manual and screenshot).
 const MOV_BASE = 0.75;
 const MOV_PER_POINT = 1 / 20;
+
+export const marginOfVictoryFactor = (team1Score: number, team2Score: number): number =>
+  MOV_BASE + Math.abs(team1Score - team2Score) * MOV_PER_POINT;
 
 const expectedScore = (teamAvgRating: number, opponentAvgRating: number): number =>
   1 / (1 + Math.pow(10, (opponentAvgRating - teamAvgRating) / 400));
@@ -49,7 +55,7 @@ export const calculatePerformanceRatingChanges = (
   input: PerformanceMatchInput
 ): { [playerName: string]: number } => {
   const { team1, team2, team1Score, team2Score, team1Stats, team2Stats } = input;
-  const kFactor = input.kFactor ?? 32;
+  const kFactor = input.kFactor ?? DEFAULT_K_FACTOR;
   const kPerf = input.kPerf ?? 16;
 
   const avg = (players: RatedPlayer[]) =>
@@ -59,7 +65,7 @@ export const calculatePerformanceRatingChanges = (
   const team2Avg = avg(team2) - (team2.length < team1.length ? handicap : 0);
 
   const team1Actual = team1Score > team2Score ? 1 : team1Score < team2Score ? 0 : 0.5;
-  const mov = MOV_BASE + Math.abs(team1Score - team2Score) * MOV_PER_POINT;
+  const mov = marginOfVictoryFactor(team1Score, team2Score);
 
   const team1Delta = kFactor * (team1Actual - expectedScore(team1Avg, team2Avg)) * mov;
   const team2Delta = kFactor * (1 - team1Actual - expectedScore(team2Avg, team1Avg)) * mov;

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   calculateRatingChange,
   calculatePerformanceRatingChanges,
+  marginOfVictoryFactor,
   recomputeRatings,
   RatedPlayer,
 } from "./rating";
@@ -41,6 +42,18 @@ describe("calculateRatingChange", () => {
   it("gives the favorite less for a win than an even matchup would", () => {
     expect(calculateRatingChange(1600, 1400, 1)).toBe(8);
     expect(calculateRatingChange(1400, 1600, 0)).toBe(-8);
+  });
+});
+
+describe("marginOfVictoryFactor", () => {
+  it("dampens narrow wins and amplifies blowouts", () => {
+    expect(marginOfVictoryFactor(10, 9)).toBe(0.8);
+    expect(marginOfVictoryFactor(10, 5)).toBe(1);
+    expect(marginOfVictoryFactor(10, 0)).toBe(1.25);
+  });
+
+  it("is symmetric in the team order", () => {
+    expect(marginOfVictoryFactor(9, 10)).toBe(0.8);
   });
 });
 

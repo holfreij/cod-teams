@@ -19,6 +19,8 @@ import {
   updatePlayerRatings,
   calculateRatingChange,
   calculatePerformanceRatingChanges,
+  marginOfVictoryFactor,
+  DEFAULT_K_FACTOR,
   getPlayerRatings,
   getHandicapCoefficient,
   adjustHandicapCoefficient,
@@ -220,15 +222,18 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
         handicap,
       });
     } else {
-      // Manual entry: classic team ELO on the final result only
+      // Manual entry: classic team ELO, scaled by margin of victory
+      // (10-9 counts 0.8x, 10-0 counts 1.25x)
       ratingChanges = {};
       const team1Actual = winner === 1 ? 1 : winner === 0 ? 0.5 : 0;
+      const movKFactor = DEFAULT_K_FACTOR * marginOfVictoryFactor(score1, score2);
 
       team1.forEach((player) => {
         ratingChanges[player.name] = calculateRatingChange(
           effectiveTeam1Avg,
           effectiveTeam2Avg,
-          team1Actual
+          team1Actual,
+          movKFactor
         );
       });
 
@@ -236,7 +241,8 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
         ratingChanges[player.name] = calculateRatingChange(
           effectiveTeam2Avg,
           effectiveTeam1Avg,
-          1 - team1Actual
+          1 - team1Actual,
+          movKFactor
         );
       });
     }

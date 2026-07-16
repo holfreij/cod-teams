@@ -2,7 +2,12 @@ import { MatchResult, PlayerMatchStats, PlayerRating } from './types';
 import { supabase } from './supabaseClient';
 import { recomputeRatings } from './rating';
 
-export { calculateRatingChange, calculatePerformanceRatingChanges } from './rating';
+export {
+  calculateRatingChange,
+  calculatePerformanceRatingChanges,
+  marginOfVictoryFactor,
+  DEFAULT_K_FACTOR,
+} from './rating';
 
 const MATCH_HISTORY_KEY = 'qmg_match_history';
 const PLAYER_RATINGS_KEY = 'qmg_player_ratings';

@@ -73,10 +73,10 @@ This value is **subtracted from smaller team's strength**, forcing the algorithm
 ### 2. ELO Rating System (`rating.ts`)
 Two paths, chosen at record time in `MatchHistory.tsx`:
 
-**Manual entries** — `calculateRatingChange(teamAvg, opponentAvg, actualScore, kFactor=32)`:
+**Manual entries** — `calculateRatingChange(teamAvg, opponentAvg, actualScore, kFactor)`:
 ```
 expectedScore = 1 / (1 + 10^((opponentAvg - teamAvg) / 400))
-ratingChange = 32 × (actualScore - expectedScore)   // actualScore: 1 win, 0.5 draw, 0 loss
+ratingChange = 32 × MoV × (actualScore - expectedScore)   // actualScore: 1 win, 0.5 draw, 0 loss
 ```
 
 **Screenshot matches** (per-player stats available) — `calculatePerformanceRatingChanges`:
