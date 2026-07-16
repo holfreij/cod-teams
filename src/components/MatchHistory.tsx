@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { useAuth } from "../auth/AuthContext";
 import {
   DialogRoot,
@@ -425,12 +425,15 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
                   .slice(0, displayCount)
                   .map((match) => {
                   const hasStats = !!(match.team1Stats?.length && match.team2Stats?.length);
+                  // Separator lives BETWEEN the nowrap spans so lines can wrap there
                   const nameList = (team: PlayerStats[]) =>
                     team.map((p, i) => (
-                      <span key={p.name} className="whitespace-nowrap">
+                      <Fragment key={p.name}>
                         {i > 0 && ", "}
-                        {p.name} <RatingDelta change={match.ratingChanges[p.name]} />
-                      </span>
+                        <span className="whitespace-nowrap">
+                          {p.name} <RatingDelta change={match.ratingChanges[p.name]} />
+                        </span>
+                      </Fragment>
                     ));
                   return (
                   <Card.Root
@@ -456,7 +459,7 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
                         </div>
 
                         <div className="flex items-center justify-between gap-4">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             {!hasStats && (
                               <div className="text-sm font-semibold mb-1 text-cyber-cyan">
                                 {nameList(match.team1)}
@@ -469,7 +472,7 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
 
                           <div className="text-xl font-display font-bold text-cyber-pink">VS</div>
 
-                          <div className="flex-1 text-right">
+                          <div className="flex-1 min-w-0 text-right">
                             {!hasStats && (
                               <div className="text-sm font-semibold mb-1 text-cyber-cyan">
                                 {nameList(match.team2)}
