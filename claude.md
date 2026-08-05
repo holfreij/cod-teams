@@ -124,7 +124,7 @@ name TEXT PRIMARY KEY
 initial_elo INTEGER DEFAULT 1500
 created_at TIMESTAMP
 ```
-11 default players with initial ratings.
+12 default players with initial ratings.
 
 #### `player_ratings`
 ```sql

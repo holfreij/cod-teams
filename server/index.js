@@ -144,6 +144,8 @@ Known player gamer tags (tag -> real name). Ignore any trailing #numbers and [QM
 - Guido68 -> Guido
 - getJayked -> Jan-Joost
 - Tuinman40 -> Arjan
+- Scotty -> Scott
+- ScottyPhil -> Scott
 
 Tags may have slight variations (capitalization, extra characters). Match them as best you can.
 

@@ -59,7 +59,8 @@ INSERT INTO public.players (name, initial_elo) VALUES
   ('Rick', 1500),
   ('Rolf', 1500),
   ('Thomas', 1828),
-  ('Arjan', 1172);
+  ('Arjan', 1172),
+  ('Scott', 1300);
 
 -- Create index for faster lookups
 CREATE INDEX idx_players_name ON public.players(name);

@@ -34,6 +34,7 @@ const DEFAULT_PLAYERS: PlayerStats[] = [
   { strength: 1500, name: "Rolf" },
   { strength: 1828, name: "Thomas" },
   { strength: 1172, name: "Arjan" },
+  { strength: 1300, name: "Scott" },
 ];
 
 const maps = [
