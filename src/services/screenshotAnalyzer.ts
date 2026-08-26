@@ -1,5 +1,6 @@
 import type { ScreenshotAnalysisResult } from "../types";
 import { supabase } from "../supabaseClient";
+import { isGameMode } from "../gameMode";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -45,5 +46,12 @@ export async function analyzeScreenshot(
     );
   }
 
-  return response.json();
+  const result: ScreenshotAnalysisResult = await response.json();
+
+  // The model is asked for a specific mode string; anything else means it
+  // couldn't tell, and the user keeps whatever is selected in the dialog
+  return {
+    ...result,
+    gameMode: isGameMode(result.gameMode) ? result.gameMode : null,
+  };
 }

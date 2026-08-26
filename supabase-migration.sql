@@ -126,6 +126,8 @@ CREATE TABLE public.match_history (
   team1_score INTEGER NOT NULL,
   team2_score INTEGER NOT NULL,
   winner INTEGER NOT NULL CHECK (winner IN (0, 1, 2)),
+  game_mode TEXT NOT NULL DEFAULT 'search_and_destroy'
+    CHECK (game_mode IN ('search_and_destroy', 'demolition')),
   map_played TEXT,
   rating_changes JSONB NOT NULL,
   -- Per-player scoreboard stats from screenshot analysis: {"team1": [...], "team2": [...]}
@@ -160,6 +162,7 @@ COMMENT ON COLUMN public.match_history.team2_players IS 'Array of player names o
 COMMENT ON COLUMN public.match_history.team1_score IS 'Final score for team 1';
 COMMENT ON COLUMN public.match_history.team2_score IS 'Final score for team 2';
 COMMENT ON COLUMN public.match_history.winner IS 'Winner: 0=draw, 1=team1, 2=team2';
+COMMENT ON COLUMN public.match_history.game_mode IS 'Game mode: search_and_destroy (first to 10) or demolition (first to 2)';
 COMMENT ON COLUMN public.match_history.map_played IS 'Optional: which map was played';
 COMMENT ON COLUMN public.match_history.rating_changes IS 'JSON object mapping player names to rating changes';
 

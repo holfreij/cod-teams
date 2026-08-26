@@ -301,6 +301,8 @@ CREATE TABLE match_history (
   team1_score INTEGER NOT NULL,
   team2_score INTEGER NOT NULL,
   winner INTEGER CHECK (winner IN (0, 1, 2)),  -- 0=draw, 1=team1, 2=team2
+  game_mode TEXT NOT NULL DEFAULT 'search_and_destroy'
+    CHECK (game_mode IN ('search_and_destroy', 'demolition')),
   map_played TEXT,
   rating_changes JSONB,
   created_at TIMESTAMP DEFAULT NOW()

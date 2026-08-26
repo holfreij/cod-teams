@@ -55,6 +55,21 @@ describe("marginOfVictoryFactor", () => {
   it("is symmetric in the team order", () => {
     expect(marginOfVictoryFactor(9, 10)).toBe(0.8);
   });
+
+  it("defaults to the Search and Destroy target of 10", () => {
+    expect(marginOfVictoryFactor(10, 9)).toBe(marginOfVictoryFactor(10, 9, 10));
+    expect(marginOfVictoryFactor(10, 0)).toBe(marginOfVictoryFactor(10, 0, 10));
+  });
+
+  it("spans the same range for Demolition's target of 2", () => {
+    expect(marginOfVictoryFactor(2, 1, 2)).toBe(1);
+    expect(marginOfVictoryFactor(2, 0, 2)).toBe(1.25);
+    expect(marginOfVictoryFactor(0, 2, 2)).toBe(1.25);
+  });
+
+  it("treats a clean sweep the same in both modes", () => {
+    expect(marginOfVictoryFactor(2, 0, 2)).toBe(marginOfVictoryFactor(10, 0, 10));
+  });
 });
 
 describe("calculatePerformanceRatingChanges", () => {
@@ -200,6 +215,7 @@ describe("recomputeRatings", () => {
     team1Score: 10,
     team2Score: 5,
     winner: 1,
+    gameMode: "search_and_destroy",
     ratingChanges: {},
     ...overrides,
   });

@@ -27,8 +27,11 @@
 - **`src/rating.ts`** - Pure rating math: classic team ELO, performance-weighted ELO (screenshot matches), recompute-from-history. Unit tested in `src/rating.test.ts`.
 - **`src/ratingTimeline.ts`** - Replays match history into the rating-over-time chart data
 - **`src/teamSelection.ts`** - Manual roster picker state logic (one team per player)
+- **`src/gameMode.ts`** - Game modes (Search & Destroy, Demolition): win targets, score validation, safe coercion of stored/AI values. Unit tested in `src/gameMode.test.ts`.
 - **`src/storage.ts`** - Data persistence (Supabase + localStorage fallback)
 - **`src/types.ts`** - TypeScript interfaces (PlayerStats, MatchResult, PlayerMatchStats, ScreenshotAnalysisResult)
+- **`server/prompt.js`** - The screenshot analysis prompt, isolated so it can be exercised without booting the server
+- **`server/analyze-samples.js`** - Runs sample screenshots through that prompt (`node server/analyze-samples.js <dir>`); needs `ANTHROPIC_API_KEY`
 - **`server/index.js`** - Express server: analyzes CoD scoreboard screenshots via the Anthropic API. Runs as systemd service `cod-teams-server` on the production box; restart required after changes (sudo, ask Rolf).
 
 ### Components
@@ -70,7 +73,24 @@ handicap = coefficient × (1 - smallerTeamSize / largerTeamSize)
 ```
 This value is **subtracted from smaller team's strength**, forcing the algorithm to assign stronger players to compensate.
 
-### 2. ELO Rating System (`rating.ts`)
+### 2. Game Modes (`gameMode.ts`)
+Two modes, distinguished by the round score the winner must reach exactly:
+
+| Mode | `GameMode` | Win target | Valid scores |
+|---|---|---|---|
+| Search & Destroy | `search_and_destroy` | 10 | 10 vs 0-9 |
+| Demolition | `demolition` | 2 | 2 vs 0-1 |
+
+- Selected in the record dialog, and auto-filled when a screenshot is analysed —
+  the CoD result screen prints it under WON/VICTORY as `Demolition | Hackney Yard`.
+- `search_and_destroy` is the default and the fallback for anything unrecognised,
+  because every match logged before this column existed was S&D.
+- **Screenshot gotcha**: a `3/10`-style fraction next to the faction name is the
+  *player count* (of max 10), not the round score. The prompt calls this out
+  explicitly; the round score is the large standalone numeral with no slash.
+- The win target feeds the margin-of-victory multiplier so modes stay comparable.
+
+### 3. ELO Rating System (`rating.ts`)
 Two paths, chosen at record time in `MatchHistory.tsx`:
 
 **Manual entries** — `calculateRatingChange(teamAvg, opponentAvg, actualScore, kFactor)`:
@@ -83,7 +103,9 @@ ratingChange = 32 × MoV × (actualScore - expectedScore)   // actualScore: 1 wi
 ```
 delta = MoV × teamDelta + kPerf × clamp(playerScore / matchMeanScore - 1, -1, +1)
 ```
-- MoV (margin of victory): 0.75 + margin/20 → 10-9 counts 0.8×, 10-0 counts 1.25×
+- MoV (margin of victory): 0.75 + (margin / winTarget) × 0.5, normalised per game mode so
+  every mode spans 0.75×–1.25×. S&D (target 10): 10-9 → 0.8×, 10-0 → 1.25×.
+  Demolition (target 2): 2-1 → 1.0×, 2-0 → 1.25×
 - kPerf = 16: strong losers can gain rating, weak winners can lose it
 - Performance term sums to ~0 across the lobby (no inflation)
 
@@ -96,14 +118,14 @@ sum of `match_history.rating_changes`. Deleting a match triggers a full recomput
 (`recomputeRatingsFromHistory`). The rating graph replays the same ledger, so the
 leaderboard and the chart endpoint always agree. Verify with `node scripts/verify-ratings.mjs`.
 
-### 3. Adaptive Handicap Coefficient
+### 4. Adaptive Handicap Coefficient
 - Auto-adjusts based on match outcomes
 - Smaller team wins → decrease by 20
 - Smaller team loses → increase by 20
 - Bounds: 0 to 3000
 - **Purpose**: Learn optimal handicap over time
 
-### 4. Dual-Mode Storage Architecture
+### 5. Dual-Mode Storage Architecture
 ```
 Try Supabase → Catch error → Fall back to localStorage
 ```
@@ -142,6 +164,7 @@ date TIMESTAMP
 team1_players, team2_players TEXT[]
 team1_score, team2_score INTEGER
 winner INTEGER CHECK (0|1|2)  -- 0=draw, 1=team1, 2=team2
+game_mode TEXT DEFAULT 'search_and_destroy' CHECK (search_and_destroy|demolition)
 map_played TEXT NULLABLE
 rating_changes JSONB
 created_at TIMESTAMP

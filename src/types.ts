@@ -1,3 +1,5 @@
+import type { GameMode } from "./gameMode";
+
 export interface PlayerStats {
   strength: number;
   name: string;
@@ -11,6 +13,7 @@ export interface MatchResult {
   team1Score: number;
   team2Score: number;
   winner: 1 | 2 | 0; // 0 = draw
+  gameMode: GameMode;
   mapPlayed?: string;
   ratingChanges: { [playerName: string]: number };
   // Per-player scoreboard stats from screenshot analysis (absent for manual entries)
@@ -30,6 +33,8 @@ export interface PlayerMatchStats {
 export interface ScreenshotAnalysisResult {
   team1Score: number | null;
   team2Score: number | null;
+  // Read off the result screen ("Demolition | Hackney Yard"); null when unreadable
+  gameMode: GameMode | null;
   team1Players: PlayerMatchStats[];
   team2Players: PlayerMatchStats[];
   map: string | null;

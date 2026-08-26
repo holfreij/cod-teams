@@ -27,6 +27,15 @@ import {
   calculateUnevenTeamHandicap,
 } from "../storage";
 import { Field } from "@/components/ui/field";
+import {
+  DEFAULT_GAME_MODE,
+  GAME_MODES,
+  GAME_MODE_LIST,
+  GameMode,
+  toGameMode,
+  validateScores,
+  winTargetOf,
+} from "../gameMode";
 import { ScreenshotUpload } from "./ScreenshotUpload";
 import { StatsTable, RatingDelta } from "./StatsTable";
 import { TeamSelection, toggleTeamMembership } from "../teamSelection";
@@ -82,6 +91,7 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
   const [team1Score, setTeam1Score] = useState("");
   const [team2Score, setTeam2Score] = useState("");
   const [selectedMap, setSelectedMap] = useState("");
+  const [gameMode, setGameMode] = useState<GameMode>(DEFAULT_GAME_MODE);
   const [displayCount, setDisplayCount] = useState(50);
   const [screenshotStats, setScreenshotStats] = useState<{
     team1: PlayerMatchStats[];
@@ -95,6 +105,9 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
     }
     if (result.team1Score != null) setTeam1Score(String(result.team1Score));
     if (result.team2Score != null) setTeam2Score(String(result.team2Score));
+    // The result screen prints the mode ("Demolition | Hackney Yard"); keep the
+    // current selection when it couldn't be read
+    if (result.gameMode) setGameMode(result.gameMode);
     // Only a full parse (both teams) can replace the manual team selection
     setScreenshotStats(
       result.team1Players.length && result.team2Players.length
@@ -147,23 +160,10 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
     const score1 = parseInt(team1Score);
     const score2 = parseInt(team2Score);
 
-    // Validate scores: one team must score 10 (winner), other team 0-9
-    if (isNaN(score1) || isNaN(score2)) {
-      alert("Vul geldige scores in");
-      return;
-    }
-    if (score1 < 0 || score2 < 0) {
-      alert("Scores kunnen niet negatief zijn");
-      return;
-    }
-    const hasWinner = score1 === 10 || score2 === 10;
-    const loserScore = score1 === 10 ? score2 : score1;
-    if (!hasWinner) {
-      alert("Één team moet precies 10 scoren om te winnen");
-      return;
-    }
-    if (loserScore < 0 || loserScore > 9) {
-      alert("Score van verliezend team moet tussen 0 en 9 zijn");
+    // Validate against the selected mode's win target (S&D 10, Demolition 2)
+    const scoreError = validateScores(gameMode, score1, score2);
+    if (scoreError) {
+      alert(scoreError);
       return;
     }
 
@@ -219,14 +219,16 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
         team2Score: score2,
         team1Stats: screenshotStats.team1,
         team2Stats: screenshotStats.team2,
+        winTarget: winTargetOf(gameMode),
         handicap,
       });
     } else {
-      // Manual entry: classic team ELO, scaled by margin of victory
-      // (10-9 counts 0.8x, 10-0 counts 1.25x)
+      // Manual entry: classic team ELO, scaled by margin of victory relative to
+      // the mode's win target (S&D 10-9 counts 0.8x, 10-0 and Demolition 2-0 count 1.25x)
       ratingChanges = {};
       const team1Actual = winner === 1 ? 1 : winner === 0 ? 0.5 : 0;
-      const movKFactor = DEFAULT_K_FACTOR * marginOfVictoryFactor(score1, score2);
+      const movKFactor =
+        DEFAULT_K_FACTOR * marginOfVictoryFactor(score1, score2, winTargetOf(gameMode));
 
       team1.forEach((player) => {
         ratingChanges[player.name] = calculateRatingChange(
@@ -255,6 +257,7 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
       team1Score: score1,
       team2Score: score2,
       winner: winner as 0 | 1 | 2,
+      gameMode,
       mapPlayed: selectedMap || undefined,
       ratingChanges,
       team1Stats: screenshotStats?.team1,
@@ -282,6 +285,7 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
     setTeam1Score("");
     setTeam2Score("");
     setSelectedMap("");
+    setGameMode(DEFAULT_GAME_MODE);
     setScreenshotStats(null);
     setManualTeams({ team1: [], team2: [] });
     handleDialogOpenChange(false);
@@ -359,6 +363,33 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
                         ))}
                       </div>
                     )}
+
+                    <Field label="Gametype">
+                      <div className="flex flex-col gap-1 w-full">
+                        <div className="grid grid-cols-2 gap-2">
+                          {GAME_MODE_LIST.map((mode) => {
+                            const active = gameMode === mode;
+                            return (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() => setGameMode(mode)}
+                                className={`h-10 px-3 rounded-lg border font-display text-sm transition-all ${
+                                  active
+                                    ? "border-cyber-cyan text-cyber-cyan bg-cyber-cyan/10 shadow-neon-cyan/50"
+                                    : "border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-500"
+                                }`}
+                              >
+                                {GAME_MODES[mode].label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          Winnaar scoort {winTargetOf(gameMode)}
+                        </span>
+                      </div>
+                    </Field>
 
                     <div className="grid grid-cols-2 gap-4">
                       <Field label="Score Team 1">
@@ -451,6 +482,7 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
                         <div className="flex justify-between items-start">
                           <div className="text-xs text-gray-500">
                             <span className="text-cyber-pink/60">{formatDate(match.date)}</span>
+                            <span className="text-purple-400/70"> • {GAME_MODES[toGameMode(match.gameMode)].label}</span>
                             {match.mapPlayed && <span className="text-cyber-cyan/60"> • {match.mapPlayed}</span>}
                           </div>
                           {user && (

@@ -14,6 +14,9 @@ export interface PerformanceMatchInput {
   team2Stats: PlayerMatchStats[];
   kFactor?: number;
   kPerf?: number;
+  // Round score the winner must reach, from the match's game mode (see gameMode.ts).
+  // Normalises the margin-of-victory multiplier across modes.
+  winTarget?: number;
   // ELO points subtracted from the smaller team's average rating, reflecting
   // the material disadvantage of playing shorthanded (see calculateUnevenTeamHandicap).
   // Makes the larger team the expected winner, so they gain less for winning
@@ -23,13 +26,22 @@ export interface PerformanceMatchInput {
 
 export const DEFAULT_K_FACTOR = 32;
 
-// Margin-of-victory multiplier on the team delta: 10-9 -> 0.8, 10-0 -> 1.25.
+// Margin-of-victory multiplier on the team delta, scaled by the mode's win
+// target so every mode spans the same 0.75-1.25 range: a 10-0 Search and
+// Destroy and a 2-0 Demolition are both maximum blowouts.
+// S&D (target 10): 10-9 -> 0.8, 10-5 -> 1.0, 10-0 -> 1.25.
+// Demolition (target 2): 2-1 -> 1.0, 2-0 -> 1.25.
 // Applies to both rating paths (manual and screenshot).
 const MOV_BASE = 0.75;
-const MOV_PER_POINT = 1 / 20;
+const MOV_RANGE = 0.5;
+const DEFAULT_WIN_TARGET = 10;
 
-export const marginOfVictoryFactor = (team1Score: number, team2Score: number): number =>
-  MOV_BASE + Math.abs(team1Score - team2Score) * MOV_PER_POINT;
+export const marginOfVictoryFactor = (
+  team1Score: number,
+  team2Score: number,
+  winTarget: number = DEFAULT_WIN_TARGET
+): number =>
+  MOV_BASE + (Math.abs(team1Score - team2Score) / winTarget) * MOV_RANGE;
 
 const expectedScore = (teamAvgRating: number, opponentAvgRating: number): number =>
   1 / (1 + Math.pow(10, (opponentAvgRating - teamAvgRating) / 400));
@@ -65,7 +77,7 @@ export const calculatePerformanceRatingChanges = (
   const team2Avg = avg(team2) - (team2.length < team1.length ? handicap : 0);
 
   const team1Actual = team1Score > team2Score ? 1 : team1Score < team2Score ? 0 : 0.5;
-  const mov = marginOfVictoryFactor(team1Score, team2Score);
+  const mov = marginOfVictoryFactor(team1Score, team2Score, input.winTarget);
 
   const team1Delta = kFactor * (team1Actual - expectedScore(team1Avg, team2Avg)) * mov;
   const team2Delta = kFactor * (1 - team1Actual - expectedScore(team2Avg, team1Avg)) * mov;

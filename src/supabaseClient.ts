@@ -51,6 +51,7 @@ export interface Database {
           team1_score: number;
           team2_score: number;
           winner: number;
+          game_mode: string;
           map_played: string | null;
           rating_changes: Record<string, number>;
           created_at: string;
@@ -63,6 +64,7 @@ export interface Database {
           team1_score: number;
           team2_score: number;
           winner: number;
+          game_mode?: string;
           map_played?: string | null;
           rating_changes: Record<string, number>;
           created_at?: string;
@@ -75,6 +77,7 @@ export interface Database {
           team1_score?: number;
           team2_score?: number;
           winner?: number;
+          game_mode?: string;
           map_played?: string | null;
           rating_changes?: Record<string, number>;
           created_at?: string;

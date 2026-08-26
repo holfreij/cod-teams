@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@chakra-ui/react";
 import { analyzeScreenshot } from "../services/screenshotAnalyzer";
 import type { ScreenshotAnalysisResult } from "../types";
+import { GAME_MODES } from "../gameMode";
 import { StatsTable } from "./StatsTable";
 
 interface ScreenshotUploadProps {
@@ -138,7 +139,10 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
               <span className="text-red-400 text-xs">{error}</span>
             )}
             {!loading && !error && !lowConfidence && result && (
-              <span className="text-green-400 text-xs">Scores ingevuld</span>
+              <span className="text-green-400 text-xs">
+                Scores ingevuld
+                {result.gameMode && ` — ${GAME_MODES[result.gameMode].label} herkend`}
+              </span>
             )}
           </div>
 

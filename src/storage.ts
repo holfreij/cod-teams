@@ -1,6 +1,7 @@
 import { MatchResult, PlayerMatchStats, PlayerRating } from './types';
 import { supabase } from './supabaseClient';
 import { recomputeRatings } from './rating';
+import { toGameMode } from './gameMode';
 
 export {
   calculateRatingChange,
@@ -24,6 +25,7 @@ interface SupabaseMatchRow {
   winner: number;
   map_played: string | null;
   rating_changes: Record<string, number>;
+  game_mode: string | null;
   player_stats: { team1: PlayerMatchStats[]; team2: PlayerMatchStats[] } | null;
 }
 
@@ -46,12 +48,18 @@ const isSupabaseConfigured = () => {
   return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
 };
 
+// PostgREST reports an unknown column as PGRST204 (schema cache) or Postgres
+// 42703 (undefined column), depending on how stale the schema cache is.
+const isUnknownColumnError = (error: { code?: string; message?: string }, column: string): boolean =>
+  (error.code === 'PGRST204' || error.code === '42703') &&
+  (error.message ?? '').includes(column);
+
 // Match History functions
 export const saveMatchResult = async (match: MatchResult): Promise<void> => {
   if (isSupabaseConfigured()) {
     try {
       const hasStats = !!(match.team1Stats?.length || match.team2Stats?.length);
-      const { error } = await supabase.from('match_history').insert({
+      const row = {
         id: match.id,
         date: match.date.toISOString(),
         team1_players: match.team1.map(p => p.name),
@@ -69,7 +77,20 @@ export const saveMatchResult = async (match: MatchResult): Promise<void> => {
             team2: match.team2Stats ?? [],
           },
         }),
-      });
+      };
+
+      let { error } = await supabase
+        .from('match_history')
+        .insert({ ...row, game_mode: match.gameMode });
+
+      // If the game_mode migration hasn't been applied yet, still save the
+      // match rather than dropping it to localStorage: the column defaults to
+      // Search and Destroy, which is what those rows would be anyway.
+      if (error && isUnknownColumnError(error, 'game_mode')) {
+        console.warn('match_history.game_mode column missing, saving without it. Run supabase-add-game-mode.sql.');
+        ({ error } = await supabase.from('match_history').insert(row));
+      }
+
       if (error) throw error;
       return;
     } catch (error) {
@@ -103,6 +124,8 @@ export const getMatchHistory = async (): Promise<MatchResult[]> => {
         winner: row.winner as 0 | 1 | 2,
         mapPlayed: row.map_played || undefined,
         ratingChanges: row.rating_changes,
+        // Rows written before the game_mode column existed are Search and Destroy
+        gameMode: toGameMode(row.game_mode),
         team1Stats: row.player_stats?.team1,
         team2Stats: row.player_stats?.team2,
       }));
@@ -120,6 +143,8 @@ export const getMatchHistory = async (): Promise<MatchResult[]> => {
     return parsed.map((match) => ({
       ...match,
       date: new Date(match.date),
+      // Entries stored before game modes existed are Search and Destroy
+      gameMode: toGameMode(match.gameMode),
     }));
   } catch {
     return [];

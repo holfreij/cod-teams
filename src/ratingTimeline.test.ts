@@ -10,6 +10,7 @@ const makeMatch = (overrides: Partial<MatchResult>): MatchResult => ({
   team1Score: 10,
   team2Score: 5,
   winner: 1,
+  gameMode: "search_and_destroy",
   ratingChanges: {},
   ...overrides,
 });
