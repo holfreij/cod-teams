@@ -2,6 +2,8 @@ import { MatchResult, PlayerMatchStats, PlayerRating } from './types';
 import { supabase } from './supabaseClient';
 import { recomputeRatings } from './rating';
 import { toGameMode } from './gameMode';
+import { playerToRow, rowToPlayer, type Player, type PlayerRow } from './playerRows';
+export type { Player } from './playerRows';
 
 export {
   calculateRatingChange,
@@ -36,11 +38,6 @@ interface SupabasePlayerRatingRow {
   losses: number;
   draws: number;
   games_played: number;
-}
-
-interface SupabasePlayerRow {
-  name: string;
-  initial_elo: number;
 }
 
 // Check if Supabase is configured
@@ -387,11 +384,6 @@ export const adjustHandicapCoefficient = async (
 };
 
 // Player Management functions
-export interface Player {
-  name: string;
-  initialElo: number;
-}
-
 export const getPlayers = async (): Promise<Player[]> => {
   if (isSupabaseConfigured()) {
     try {
@@ -402,10 +394,7 @@ export const getPlayers = async (): Promise<Player[]> => {
 
       if (error) throw error;
 
-      return (data || []).map((row: SupabasePlayerRow) => ({
-        name: row.name,
-        initialElo: row.initial_elo,
-      }));
+      return (data || []).map((row: PlayerRow) => rowToPlayer(row));
     } catch (error) {
       console.error('Error fetching players from Supabase, falling back to localStorage:', error);
     }
@@ -430,10 +419,8 @@ export const savePlayers = async (players: Player[]): Promise<void> => {
       if (deleteError) throw deleteError;
 
       // Insert new players
-      const playersData = players.map(player => ({
-        name: player.name,
-        initial_elo: player.initialElo,
-      }));
+      // Carries discord_id: this save deletes every row first, so omitting it would wipe the mapping
+      const playersData = players.map(playerToRow);
 
       const { error } = await supabase.from('players').insert(playersData);
       if (error) throw error;

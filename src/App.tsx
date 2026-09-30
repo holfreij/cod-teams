@@ -7,13 +7,21 @@ import {
 import { CheckboxCard } from "@/components/ui/checkbox-card";
 import { Slider } from "@/components/ui/slider";
 import { Button, Card, CheckboxGroup, Heading } from "@chakra-ui/react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { createBalancedTeams, PlayerStats, TeamResults } from "./algorithm";
 import { MatchHistory } from "./components/MatchHistory";
 import { PlayerStatsDisplay } from "./components/PlayerStats";
 import { RatingHistory } from "./components/RatingHistory";
 import { Auth } from "./components/Auth";
 import { getPlayerRatings, getHandicapCoefficient, getPlayers } from "./storage";
+import {
+  fetchVoiceDiscordIds,
+  MIN_PLAYERS,
+  playersInVoice,
+  shouldApplyLoadResult,
+  voiceSyncOutcome,
+  type VoicePlayer,
+} from "./discordVoice";
 import { useAuth } from "./auth/AuthContext";
 import { useDebounce } from "./hooks/useDebounce";
 
@@ -150,6 +158,33 @@ function App() {
   const [adjustedPlayerStats, setAdjustedPlayerStats] = useState<PlayerStats[]>([]);
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
   const [isCalculatingTeams, setIsCalculatingTeams] = useState(false);
+  const [voicePlayers, setVoicePlayers] = useState<VoicePlayer[]>([]);
+  const [voiceSyncStatus, setVoiceSyncStatus] = useState<string | null>(null);
+  const [isSyncingVoice, setIsSyncingVoice] = useState(false);
+  // Set once the user changes the selection or triggers a button sync, so a slow
+  // load-time result cannot overwrite it after the fact
+  const selectionTouched = useRef(false);
+
+  // fromButton: show the outcome and always apply; on load: silent, and only if untouched
+  const syncWithDiscord = async (players: VoicePlayer[], fromButton: boolean) => {
+    if (fromButton) {
+      selectionTouched.current = true;
+      setIsSyncingVoice(true);
+    }
+    try {
+      const inVoice = playersInVoice(players, await fetchVoiceDiscordIds());
+      const outcome = voiceSyncOutcome(inVoice);
+      if (outcome.apply && (fromButton || shouldApplyLoadResult(selectionTouched.current))) {
+        setActivePlayers(inVoice);
+      }
+      if (fromButton) setVoiceSyncStatus(outcome.status);
+    } catch (error) {
+      console.warn("Discord voice sync failed:", error);
+      if (fromButton) setVoiceSyncStatus("Discord niet bereikbaar");
+    } finally {
+      if (fromButton) setIsSyncingVoice(false);
+    }
+  };
 
   const { user } = useAuth();
 
@@ -178,6 +213,8 @@ function App() {
         setActivePlayers(
           stats.map(p => p.name).filter(name => !RARELY_PRESENT_PLAYERS.includes(name))
         );
+        setVoicePlayers(players);
+        void syncWithDiscord(players, false);
       }
     };
     loadPlayers();
@@ -267,7 +304,8 @@ function App() {
   };
 
   const onActivePlayersChange = (newActivePlayers: string[]) => {
-    if (newActivePlayers.length < 4) return;
+    if (newActivePlayers.length < MIN_PLAYERS) return;
+    selectionTouched.current = true;
     setActivePlayers(newActivePlayers);
   };
 
@@ -378,6 +416,18 @@ function App() {
           <Heading className="text-xl md:text-2xl text-center font-display font-bold text-cyber-cyan">
             👥 Selecteer spelers
           </Heading>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button
+              size="sm"
+              variant="outline"
+              loading={isSyncingVoice}
+              disabled={!voicePlayers.some((p) => p.discordId)}
+              onClick={() => void syncWithDiscord(voicePlayers, true)}
+            >
+              🎧 Sync met Discord
+            </Button>
+            {voiceSyncStatus && <span className="text-sm text-gray-300">{voiceSyncStatus}</span>}
+          </div>
           <CheckboxGroup
             onValueChange={onActivePlayersChange}
             value={activePlayers}

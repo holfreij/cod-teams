@@ -30,6 +30,9 @@
 - **`src/gameMode.ts`** - Game modes (Search & Destroy, Demolition): win targets, score validation, safe coercion of stored/AI values. Unit tested in `src/gameMode.test.ts`.
 - **`src/storage.ts`** - Data persistence (Supabase + localStorage fallback)
 - **`src/types.ts`** - TypeScript interfaces (PlayerStats, MatchResult, PlayerMatchStats, ScreenshotAnalysisResult)
+- **`src/discordVoice.ts`** - Discord voice pre-selection: maps `/api/voice-members` Discord IDs to players (`players.discord_id`), applies only when ≥ 4 are in voice. Unit tested in `src/discordVoice.test.ts`.
+- **`server/voiceMembers.js`** - `/api/voice-members`: proxies the Discord bot in server-configs (`https://knoeks.rolf.bible/api/voice-members`, Bearer `VOICE_API_TOKEN` from `server/.env`), returns IDs only.
+- **`scripts/backup-supabase.mjs`** - Read-only snapshot of all tables; `--compare <file>` after any migration must report "No data lost or changed."
 - **`server/prompt.js`** - The screenshot analysis prompt, isolated so it can be exercised without booting the server
 - **`server/analyze-samples.js`** - Runs sample screenshots through that prompt (`node server/analyze-samples.js <dir>`); needs `ANTHROPIC_API_KEY`
 - **`server/index.js`** - Express server: analyzes CoD scoreboard screenshots via the Anthropic API. Runs as systemd service `cod-teams-server` on the production box; restart required after changes (sudo, ask Rolf).
