@@ -8,6 +8,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { TABLES, diffSnapshots } from "./snapshot-diff.mjs";
 import { parseContentRangeTotal } from "./content-range.mjs";
+import { fetchAllRows } from "./paginate.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const env = Object.fromEntries(
@@ -24,32 +25,18 @@ const headers = {
 const PAGE = 1000; // PostgREST's default max rows per request
 
 async function fetchTable(table, key) {
-  const rows = [];
-  let total = null;
-  for (let offset = 0; ; offset += rows.length) {
-    const url = `${env.VITE_SUPABASE_URL}/rest/v1/${table}?select=*&order=${key}.asc&limit=${PAGE}&offset=${offset}`;
+  const fetchPage = async (offset, limit) => {
+    const url = `${env.VITE_SUPABASE_URL}/rest/v1/${table}?select=*&order=${key}.asc&limit=${limit}&offset=${offset}`;
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error(`${table}: HTTP ${res.status} ${await res.text()}`);
     const contentRange = res.headers.get("Content-Range");
-    const page = await res.json();
-
-    if (total === null) {
-      total = parseContentRangeTotal(contentRange);
-    }
-
-    if (page.length === 0 && rows.length < total) {
-      throw new Error(`${table}: received empty page before reaching total of ${total} rows`);
-    }
-
-    rows.push(...page);
-    if (rows.length >= total) break;
-  }
-
-  if (rows.length !== total) {
-    throw new Error(`${table}: fetched ${rows.length} rows but server reports ${total}`);
-  }
-
-  return rows;
+    const rows = await res.json();
+    return {
+      rows,
+      total: parseContentRangeTotal(contentRange),
+    };
+  };
+  return fetchAllRows(fetchPage, PAGE);
 }
 
 async function snapshot() {
