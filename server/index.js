@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "fs";
 import { ANALYSIS_PROMPT } from "./prompt.js";
 import { voiceMembersHandler } from "./voiceMembers.js";
+import { createRateLimiter, enforceRateLimit } from "./rateLimit.js";
 
 // Load .env manually (avoid dotenv dependency)
 try {
@@ -43,35 +44,15 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 
-// Rate limiting: 10 requests per minute per IP
-const rateLimitMap = new Map();
-const RATE_LIMIT = 10;
-const RATE_WINDOW_MS = 60_000;
-
-function checkRateLimit(ip) {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  if (!entry) {
-    rateLimitMap.set(ip, { count: 1, windowStart: now });
-    return true;
-  }
-  if (now - entry.windowStart > RATE_WINDOW_MS) {
-    entry.count = 1;
-    entry.windowStart = now;
-    return true;
-  }
-  entry.count++;
-  return entry.count <= RATE_LIMIT;
-}
+// Rate limiting: the paid screenshot-analysis route and the free voice-members
+// route each get their own budget, so one can't starve the other.
+const screenshotRateLimiter = createRateLimiter(10, 60_000);
+const voiceRateLimiter = createRateLimiter(30, 60_000);
 
 // Clean up rate limit entries every 5 minutes
 setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of rateLimitMap) {
-    if (now - entry.windowStart > RATE_WINDOW_MS) {
-      rateLimitMap.delete(ip);
-    }
-  }
+  screenshotRateLimiter.cleanup();
+  voiceRateLimiter.cleanup();
 }, 300_000);
 
 app.post("/api/analyze-screenshot", async (req, res) => {
@@ -92,10 +73,7 @@ app.post("/api/analyze-screenshot", async (req, res) => {
   }
 
   // Rate limit
-  const ip = req.headers["x-real-ip"] || req.ip;
-  if (!checkRateLimit(ip)) {
-    return res.status(429).json({ error: "Te veel verzoeken. Probeer het over een minuut opnieuw." });
-  }
+  if (!enforceRateLimit(screenshotRateLimiter, req, res)) return;
 
   const { image, mediaType } = req.body;
   if (!image || !mediaType) {
@@ -162,10 +140,7 @@ app.post("/api/analyze-screenshot", async (req, res) => {
 app.get(
   "/api/voice-members",
   (req, res, next) => {
-    const ip = req.headers["x-real-ip"] || req.ip;
-    if (!checkRateLimit(ip)) {
-      return res.status(429).json({ error: "Te veel verzoeken. Probeer het over een minuut opnieuw." });
-    }
+    if (!enforceRateLimit(voiceRateLimiter, req, res)) return;
     next();
   },
   voiceMembersHandler({ url: VOICE_API_URL, token: VOICE_API_TOKEN })
