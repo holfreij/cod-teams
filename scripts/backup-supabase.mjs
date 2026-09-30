@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { TABLES, diffSnapshots } from "./snapshot-diff.mjs";
+import { parseContentRangeTotal } from "./content-range.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const env = Object.fromEntries(
@@ -18,19 +19,37 @@ const env = Object.fromEntries(
 const headers = {
   apikey: env.VITE_SUPABASE_ANON_KEY,
   Authorization: `Bearer ${env.VITE_SUPABASE_ANON_KEY}`,
+  "Prefer": "count=exact",
 };
 const PAGE = 1000; // PostgREST's default max rows per request
 
 async function fetchTable(table, key) {
   const rows = [];
-  for (let offset = 0; ; offset += PAGE) {
+  let total = null;
+  for (let offset = 0; ; offset += rows.length) {
     const url = `${env.VITE_SUPABASE_URL}/rest/v1/${table}?select=*&order=${key}.asc&limit=${PAGE}&offset=${offset}`;
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error(`${table}: HTTP ${res.status} ${await res.text()}`);
+    const contentRange = res.headers.get("Content-Range");
     const page = await res.json();
+
+    if (total === null) {
+      total = parseContentRangeTotal(contentRange);
+    }
+
+    if (page.length === 0 && rows.length < total) {
+      throw new Error(`${table}: received empty page before reaching total of ${total} rows`);
+    }
+
     rows.push(...page);
-    if (page.length < PAGE) return rows;
+    if (rows.length >= total) break;
   }
+
+  if (rows.length !== total) {
+    throw new Error(`${table}: fetched ${rows.length} rows but server reports ${total}`);
+  }
+
+  return rows;
 }
 
 async function snapshot() {
@@ -39,10 +58,37 @@ async function snapshot() {
   return { takenAt: new Date().toISOString(), tables };
 }
 
+const compareIdx = process.argv.indexOf("--compare");
+
+// Validate --compare file before fetching anything
+if (compareIdx !== -1) {
+  const compareFile = process.argv[compareIdx + 1];
+  if (!compareFile) {
+    console.error("Error: --compare requires a file path argument");
+    process.exit(1);
+  }
+  try {
+    const content = readFileSync(compareFile, "utf8");
+    const before = JSON.parse(content);
+    if (!before.tables || typeof before.tables !== "object") {
+      console.error(`Error: file does not contain a valid snapshot (missing tables object): ${compareFile}`);
+      process.exit(1);
+    }
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      console.error(`Error: file not found: ${compareFile}`);
+    } else if (err instanceof SyntaxError) {
+      console.error(`Error: file is not valid JSON: ${compareFile}`);
+    } else {
+      console.error(`Error: could not read file: ${compareFile}\n${err.message}`);
+    }
+    process.exit(1);
+  }
+}
+
 const current = await snapshot();
 const counts = Object.entries(current.tables).map(([t, rows]) => `${t}: ${rows.length}`).join(", ");
 
-const compareIdx = process.argv.indexOf("--compare");
 if (compareIdx === -1) {
   const dir = join(root, "supabase-backups");
   mkdirSync(dir, { recursive: true });

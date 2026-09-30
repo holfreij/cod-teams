@@ -23,6 +23,9 @@ export function diffSnapshots(before, after) {
       continue;
     }
     const newByKey = new Map(newRows.map((r) => [r[key], r]));
+    if (newByKey.size !== newRows.length) {
+      problems.push(`${table}: duplicate keys in new snapshot`);
+    }
     const oldKeys = new Set(oldRows.map((r) => r[key]));
 
     for (const oldRow of oldRows) {

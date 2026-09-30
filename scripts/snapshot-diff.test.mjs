@@ -66,4 +66,15 @@ describe("diffSnapshots", () => {
     delete after.tables.settings;
     expect(diffSnapshots(snap(), after).problems).toEqual(["settings: table missing"]);
   });
+
+  it("flags duplicate keys in the new snapshot", () => {
+    const after = snap({
+      players: [
+        { name: "Kevin", initial_elo: 1500 },
+        { name: "Kevin", initial_elo: 1600 },
+        { name: "Rolf", initial_elo: 1500 },
+      ],
+    });
+    expect(diffSnapshots(snap(), after).problems).toContain("players: duplicate keys in new snapshot");
+  });
 });
