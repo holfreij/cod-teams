@@ -25,3 +25,6 @@ dist-ssr
 .env
 server/.env
 server/node_modules
+
+# Supabase snapshots from scripts/backup-supabase.mjs (contain all match data)
+supabase-backups/

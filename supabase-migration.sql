@@ -29,6 +29,7 @@ DROP TABLE IF EXISTS public.settings CASCADE;
 CREATE TABLE public.players (
   name TEXT PRIMARY KEY,
   initial_elo INTEGER NOT NULL DEFAULT 1500,
+  discord_id TEXT UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
