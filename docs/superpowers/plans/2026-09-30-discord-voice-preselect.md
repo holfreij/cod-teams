@@ -1300,14 +1300,17 @@ Order matters. Each step is safe on its own.
 - [ ] **Step 1: Deploy the bot and Caddy on game-server** (needs Rolf's go-ahead, because it restarts the live bot)
 
 ```bash
+# Back up the live compose file first — it's the only copy of the current
+# DISCORD_TOKEN / CHANNEL_ID / DOMAIN values, and deploy.sh is about to overwrite it.
+cp /opt/stacks/discord-bot/docker-compose.yml /opt/stacks/discord-bot/docker-compose.yml.pre-env
+
+# Build the live .env from that backup's values plus a new voice token:
+#   /opt/stacks/discord-bot/.env  <- DISCORD_TOKEN, CHANNEL_ID, DOMAIN from
+#   docker-compose.yml.pre-env, plus VOICE_API_TOKEN=$(openssl rand -hex 32)
+chmod 600 /opt/stacks/discord-bot/.env
+
 cd <server-configs worktree>
 ./deploy.sh discord-bot
-# Create the live .env from the current compose values plus a new token:
-#   /opt/stacks/discord-bot/.env  <- DISCORD_TOKEN, CHANNEL_ID, DOMAIN from the old
-#   /opt/stacks/discord-bot/docker-compose.yml (before deploy overwrote it: read it
-#   from `git show main:discord-bot/docker-compose.yml`), plus
-#   VOICE_API_TOKEN=$(openssl rand -hex 32)
-chmod 600 /opt/stacks/discord-bot/.env
 cd /opt/stacks/discord-bot && docker compose up -d --build
 docker logs discord-bot --tail 20   # expect "Voice-members endpoint listening on :8080"
 ```
@@ -1332,6 +1335,8 @@ docker run --rm -u "$(id -u):$(id -g)" -v /home/rolf/cod-teams:/app -w /app node
 ```
 
 Expected: `Snapshot written: …/supabase-backups/<ts>.json` with row counts, and the verify run shows zero drift. Record both outputs. The snapshot file is the backup; keep it.
+
+Copy the snapshot file off game-server as well (e.g. to Rolf's own machine) — it is the only copy.
 
 - [ ] **Step 3: 👤 Run `supabase-add-discord-ids.sql` in the Supabase SQL editor**
 

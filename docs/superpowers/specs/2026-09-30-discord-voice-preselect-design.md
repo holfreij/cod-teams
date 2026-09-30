@@ -160,8 +160,10 @@ Requirement from Rolf: no Supabase data may be lost.
 
 Each step is safe on its own — until the chain is complete the page keeps its default.
 
-1. server-configs: bot endpoint, `.env`, Caddy route; `./deploy.sh discord-bot nginx`,
-   rebuild `discord-bot`, reload Caddy.
+1. server-configs: `./deploy.sh discord-bot` (it only reads its first argument and never
+   copies the live Caddyfile, so nginx is not a second argument); create
+   `/opt/stacks/discord-bot/.env`; rebuild `discord-bot`; add the route to the live
+   `/opt/stacks/nginx/Caddyfile` by hand and reload Caddy.
 2. Supabase: Rolf runs `supabase-add-discord-ids.sql`.
 3. cod-teams: Rolf adds `VOICE_API_URL` / `VOICE_API_TOKEN` to `server/.env` on the qmg
    box; merge → auto-deploy; `sudo systemctl restart cod-teams-server` if the deploy
