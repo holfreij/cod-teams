@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "fs";
 import { ANALYSIS_PROMPT } from "./prompt.js";
+import { voiceMembersHandler } from "./voiceMembers.js";
 
 // Load .env manually (avoid dotenv dependency)
 try {
@@ -24,6 +25,8 @@ const {
   ANTHROPIC_API_KEY,
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
+  VOICE_API_URL = "https://knoeks.rolf.bible/api/voice-members",
+  VOICE_API_TOKEN = "",
   PORT = "3001",
 } = process.env;
 
@@ -153,6 +156,20 @@ app.post("/api/analyze-screenshot", async (req, res) => {
     return res.status(500).json({ error: "Analyse mislukt. Probeer het opnieuw." });
   }
 });
+
+// Who is in Discord voice, for pre-selecting players. Public like the leaderboard;
+// optional, so a missing VOICE_API_TOKEN yields 503 instead of refusing to boot.
+app.get(
+  "/api/voice-members",
+  (req, res, next) => {
+    const ip = req.headers["x-real-ip"] || req.ip;
+    if (!checkRateLimit(ip)) {
+      return res.status(429).json({ error: "Te veel verzoeken. Probeer het over een minuut opnieuw." });
+    }
+    next();
+  },
+  voiceMembersHandler({ url: VOICE_API_URL, token: VOICE_API_TOKEN })
+);
 
 app.listen(parseInt(PORT), "127.0.0.1", () => {
   console.log(`Screenshot analysis server running on http://127.0.0.1:${PORT} (model: ${ANTHROPIC_MODEL})`);
