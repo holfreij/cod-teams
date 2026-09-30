@@ -16,6 +16,7 @@ import { Auth } from "./components/Auth";
 import { getPlayerRatings, getHandicapCoefficient, getPlayers } from "./storage";
 import {
   fetchVoiceDiscordIds,
+  MIN_PLAYERS,
   playersInVoice,
   shouldApplyLoadResult,
   voiceSyncOutcome,
@@ -160,12 +161,16 @@ function App() {
   const [voicePlayers, setVoicePlayers] = useState<VoicePlayer[]>([]);
   const [voiceSyncStatus, setVoiceSyncStatus] = useState<string | null>(null);
   const [isSyncingVoice, setIsSyncingVoice] = useState(false);
-  // Set once the user changes the selection, so a slow load-time sync cannot overwrite it
+  // Set once the user changes the selection or triggers a button sync, so a slow
+  // load-time result cannot overwrite it after the fact
   const selectionTouched = useRef(false);
 
   // fromButton: show the outcome and always apply; on load: silent, and only if untouched
   const syncWithDiscord = async (players: VoicePlayer[], fromButton: boolean) => {
-    if (fromButton) setIsSyncingVoice(true);
+    if (fromButton) {
+      selectionTouched.current = true;
+      setIsSyncingVoice(true);
+    }
     try {
       const inVoice = playersInVoice(players, await fetchVoiceDiscordIds());
       const outcome = voiceSyncOutcome(inVoice);
@@ -299,7 +304,7 @@ function App() {
   };
 
   const onActivePlayersChange = (newActivePlayers: string[]) => {
-    if (newActivePlayers.length < 4) return;
+    if (newActivePlayers.length < MIN_PLAYERS) return;
     selectionTouched.current = true;
     setActivePlayers(newActivePlayers);
   };
@@ -416,7 +421,7 @@ function App() {
               size="sm"
               variant="outline"
               loading={isSyncingVoice}
-              disabled={voicePlayers.length === 0}
+              disabled={!voicePlayers.some((p) => p.discordId)}
               onClick={() => void syncWithDiscord(voicePlayers, true)}
             >
               🎧 Sync met Discord
