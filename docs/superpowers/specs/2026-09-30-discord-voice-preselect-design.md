@@ -1,7 +1,7 @@
 # Discord voice pre-selection — design
 
 **Date:** 2026-09-30
-**Status:** approved in chat, awaiting spec review
+**Status:** approved 2026-09-30 (≥ 4 threshold added while planning)
 **Repos:** `cod-teams` (this repo) and `server-configs` (Discord bot + Caddy)
 
 ## Goal
@@ -128,13 +128,33 @@ future caller would silently wipe the mapping.
     non-2xx.
 - `App.tsx`:
   - Keep each player's `discordId` alongside `playerStats`.
-  - After players load: fetch; if `playersInVoice` returns ≥ 1 name, `setActivePlayers`
-    to exactly that list; otherwise keep today's default (all minus
-    `RARELY_PRESENT_PLAYERS`). Errors on load are silent (`console.warn`).
+  - After players load: fetch; if `playersInVoice` returns ≥ 4 names (the app's
+    existing minimum — `onActivePlayersChange` rejects any selection below 4, so a
+    1–3 player selection would lock the checkboxes), `setActivePlayers` to exactly
+    that list; otherwise keep today's default (all minus `RARELY_PRESENT_PLAYERS`).
+    The load-time result is dropped if the user already changed the selection.
+    Errors on load are silent (`console.warn`).
   - "Sync met Discord" button beside the "Selecteer spelers" heading, same logic, with
-    an inline status: `"N spelers in voice"`, `"Niemand in voice"` (selection left
-    alone), or `"Discord niet bereikbaar"`.
+    an inline status: `"N spelers in voice"` (applied), `"Maar N in voice — selectie
+    niet aangepast"` (1–3), `"Niemand in voice"`, or `"Discord niet bereikbaar"`.
   - Existing 500 ms debounce on `activePlayers` stays; no other behaviour changes.
+
+## Data safety (Supabase)
+
+Requirement from Rolf: no Supabase data may be lost.
+
+- The feature itself never writes to Supabase; the only write is the one-off migration.
+- The migration is additive (`ADD COLUMN IF NOT EXISTS`, `UPDATE … SET discord_id`
+  guarded by `discord_id IS NULL`), wrapped in `BEGIN`/`COMMIT` so it is all-or-nothing,
+  and a no-op when re-run. No `DELETE`, `DROP`, or change to any other column.
+- Before running it: `node scripts/backup-supabase.mjs` saves a read-only JSON snapshot
+  of all four tables (`players`, `player_ratings`, `match_history`, `settings`).
+- After running it: `node scripts/backup-supabase.mjs --compare <snapshot>` must report
+  no problems — the only permitted difference is `players.discord_id` going from null to
+  a value — and `node scripts/verify-ratings.mjs` must still show zero drift.
+- `supabase-migration.sql` starts with `DROP TABLE … CASCADE` and must never be run
+  against the live database; its edit here only keeps fresh installs in sync.
+- `savePlayers` (delete-all + re-insert, currently uncalled) carries `discord_id`.
 
 ## Rollout
 
