@@ -64,3 +64,20 @@ export const buildRatingTimeline = (
 
   return rows;
 };
+
+// Index of the first timeline row to show when zoomed to the last `months`
+// months. Starts at the last row on or before the cutoff so lines begin at the
+// rating players had at that moment, and always leaves at least two rows visible.
+export const startIndexForPeriod = (
+  rows: RatingTimelineRow[],
+  months: number | null,
+  now: Date = new Date()
+): number => {
+  if (months == null || rows.length < 2) return 0;
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - months, now.getDate());
+  let start = 0;
+  rows.forEach((row, i) => {
+    if (row.date.getTime() <= cutoff.getTime()) start = i;
+  });
+  return Math.min(start, rows.length - 2);
+};

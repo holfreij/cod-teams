@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildRatingTimeline, countGamesPerPlayer } from "./ratingTimeline";
+import { buildRatingTimeline, countGamesPerPlayer, startIndexForPeriod } from "./ratingTimeline";
 import { MatchResult } from "./types";
 
 const makeMatch = (overrides: Partial<MatchResult>): MatchResult => ({
@@ -105,5 +105,30 @@ describe("countGamesPerPlayer", () => {
 
   it("returns an empty object for no matches", () => {
     expect(countGamesPerPlayer([])).toEqual({});
+  });
+});
+
+describe("startIndexForPeriod", () => {
+  const row = (y: number, m: number, d: number) => ({ date: new Date(y, m, d), ratings: {} });
+  const rows = [row(2026, 0, 1), row(2026, 2, 1), row(2026, 5, 1), row(2026, 8, 1), row(2026, 9, 15)];
+  const now = new Date(2026, 9, 21);
+
+  it("shows everything when no period is selected", () => {
+    expect(startIndexForPeriod(rows, null, now)).toBe(0);
+  });
+
+  it("starts at the last row on or before the cutoff", () => {
+    // 3 months before Oct 21 is Jul 21 -> last row before that is Jun 1
+    expect(startIndexForPeriod(rows, 3, now)).toBe(2);
+    // 6 months before is Apr 21 -> Mar 1
+    expect(startIndexForPeriod(rows, 6, now)).toBe(1);
+  });
+
+  it("starts at 0 when the history is shorter than the period", () => {
+    expect(startIndexForPeriod(rows, 12, now)).toBe(0);
+  });
+
+  it("keeps at least two rows visible when nothing happened in the period", () => {
+    expect(startIndexForPeriod(rows, 3, new Date(2027, 6, 1))).toBe(3);
   });
 });

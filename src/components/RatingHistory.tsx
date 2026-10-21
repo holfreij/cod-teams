@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Card, Heading } from "@chakra-ui/react";
+import { Button, Card, Heading } from "@chakra-ui/react";
 import {
   LineChart,
   Line,
@@ -9,13 +9,28 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Brush,
 } from "recharts";
 import { getPlayers, getMatchHistory } from "../storage";
-import { buildRatingTimeline, countGamesPerPlayer, RatingTimelineRow } from "../ratingTimeline";
+import {
+  buildRatingTimeline,
+  countGamesPerPlayer,
+  startIndexForPeriod,
+  RatingTimelineRow,
+} from "../ratingTimeline";
 
 // Players with fewer matches than this start hidden in the chart
 // (still listed in the legend — click to show them)
 const MIN_GAMES_SHOWN_BY_DEFAULT = 15;
+
+// Zoom presets above the chart; null = full history
+const PERIODS: { label: string; months: number | null }[] = [
+  { label: "3M", months: 3 },
+  { label: "6M", months: 6 },
+  { label: "1J", months: 12 },
+  { label: "Alles", months: null },
+];
+const DEFAULT_PERIOD_MONTHS = 3;
 
 const LINE_COLORS = [
   "#00ffff",
@@ -72,6 +87,11 @@ export const RatingHistory = ({ refreshToken = 0 }: RatingHistoryProps) => {
   const [loading, setLoading] = useState(true);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const hiddenInitialized = useRef(false);
+  // Selected preset (undefined once the user drags the brush to a custom range)
+  const [periodMonths, setPeriodMonths] = useState<number | null | undefined>(
+    DEFAULT_PERIOD_MONTHS
+  );
+  const [range, setRange] = useState({ startIndex: 0, endIndex: 0 });
 
   useEffect(() => {
     const load = async () => {
@@ -113,6 +133,19 @@ export const RatingHistory = ({ refreshToken = 0 }: RatingHistoryProps) => {
     [timeline]
   );
 
+  // Re-apply the preset when data (re)loads; a custom range is clamped instead
+  useEffect(() => {
+    const last = Math.max(rows.length - 1, 0);
+    if (periodMonths !== undefined) {
+      setRange({ startIndex: startIndexForPeriod(timeline, periodMonths), endIndex: last });
+    } else {
+      setRange((prev) => ({
+        startIndex: Math.min(prev.startIndex, last),
+        endIndex: Math.min(prev.endIndex, last),
+      }));
+    }
+  }, [rows, timeline, periodMonths]);
+
   const toggle = (name: string) => {
     setHidden((prev) => {
       const next = new Set(prev);
@@ -129,9 +162,27 @@ export const RatingHistory = ({ refreshToken = 0 }: RatingHistoryProps) => {
     <div className="w-full max-w-4xl">
       <Card.Root className="shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
         <Card.Body className="flex flex-col gap-4">
-          <Heading className="text-xl md:text-2xl font-display font-bold text-cyber-cyan">
-            📈 Rating verloop
-          </Heading>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Heading className="text-xl md:text-2xl font-display font-bold text-cyber-cyan">
+              📈 Rating verloop
+            </Heading>
+            <div className="flex gap-1">
+              {PERIODS.map(({ label, months }) => (
+                <Button
+                  key={label}
+                  size="xs"
+                  variant="outline"
+                  onClick={() => setPeriodMonths(months)}
+                  color={periodMonths === months ? "#00ffff" : "gray.400"}
+                  borderColor={periodMonths === months ? "#00ffff" : "whiteAlpha.300"}
+                  bg={periodMonths === months ? "rgba(0,255,255,0.1)" : "transparent"}
+                  _hover={{ color: periodMonths === months ? "#00ffff" : "gray.200" }}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
 
           {loading ? (
             <div className="flex justify-center items-center py-8">
@@ -142,7 +193,7 @@ export const RatingHistory = ({ refreshToken = 0 }: RatingHistoryProps) => {
               Nog geen wedstrijden geregistreerd.
             </p>
           ) : (
-            <div className="rating-chart h-80">
+            <div className="rating-chart h-96">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={rows} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
                   <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
@@ -184,6 +235,22 @@ export const RatingHistory = ({ refreshToken = 0 }: RatingHistoryProps) => {
                       animationDuration={800}
                     />
                   ))}
+                  <Brush
+                    dataKey="t"
+                    height={24}
+                    travellerWidth={10}
+                    startIndex={range.startIndex}
+                    endIndex={range.endIndex}
+                    onChange={({ startIndex, endIndex }) => {
+                      if (startIndex == null || endIndex == null) return;
+                      if (startIndex === range.startIndex && endIndex === range.endIndex) return;
+                      setPeriodMonths(undefined);
+                      setRange({ startIndex, endIndex });
+                    }}
+                    tickFormatter={formatDate}
+                    stroke="#00ffff"
+                    fill="rgba(0,0,0,0.3)"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
