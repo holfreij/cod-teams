@@ -13,7 +13,8 @@ import { MatchHistory } from "./components/MatchHistory";
 import { PlayerStatsDisplay } from "./components/PlayerStats";
 import { RatingHistory } from "./components/RatingHistory";
 import { Auth } from "./components/Auth";
-import { getPlayerRatings, getHandicapCoefficient, getPlayers, calculateUnevenTeamHandicap } from "./storage";
+import { getPlayerRatings, getHandicapCoefficient, getPlayers, calculateUnevenTeamHandicap, getMatchHistory } from "./storage";
+import { lastPlayedByLineup, lastPlayedLabel, lineupKey } from "./lastPlayed";
 import {
   fetchVoiceDiscordIds,
   gatherOutcomeStatus,
@@ -320,6 +321,13 @@ function App() {
       setCurrentCoefficient(coefficient);
     };
     loadCoefficient();
+  }, [ratingsVersion]);
+
+  // Most recent date per team split, for the "Laatst gespeeld" line on the cards.
+  // Recording or deleting a match bumps ratingsVersion, which reloads it.
+  const [lastPlayed, setLastPlayed] = useState<Map<string, Date>>(new Map());
+  useEffect(() => {
+    getMatchHistory().then((history) => setLastPlayed(lastPlayedByLineup(history)));
   }, [ratingsVersion]);
 
   // Keyboard shortcuts
@@ -708,6 +716,19 @@ function App() {
                       </Card.Body>
                     </Card.Root>
                   </div>
+                  {(() => {
+                    const playedAt = lastPlayed.get(
+                      lineupKey(match.team1.map((p) => p.name), match.team2.map((p) => p.name))
+                    );
+                    return playedAt && (
+                      <p
+                        className="-mt-2 text-center text-xs md:text-sm text-gray-300/70 tracking-wide"
+                        title={playedAt.toLocaleString("nl-NL")}
+                      >
+                        Laatst gespeeld: {lastPlayedLabel(playedAt)}
+                      </p>
+                    );
+                  })()}
                   {user && (
                     <div className="flex flex-col items-center gap-2">
                       <div className="flex flex-wrap justify-center gap-2">
