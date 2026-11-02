@@ -30,3 +30,80 @@ export const fetchVoiceDiscordIds = async (fetchImpl: typeof fetch = fetch): Pro
   if (!Array.isArray(body?.discordIds)) throw new Error("voice-members returned no discordIds");
   return body.discordIds.map(String);
 };
+
+// --- Moving a proposed split into the Discord team channels (see server/voiceMove.js) ---
+
+export interface MoveResult {
+  moved: string[];
+  notInVoice: string[];
+  failed: string[];
+}
+
+// Names without a linked Discord account cannot be moved; they are reported, not dropped silently
+export const teamDiscordIds = (
+  team: { name: string }[],
+  players: VoicePlayer[]
+): { ids: string[]; unlinked: string[] } => {
+  const idByName = new Map(players.map((p) => [p.name, p.discordId]));
+  const ids: string[] = [];
+  const unlinked: string[] = [];
+  for (const { name } of team) {
+    const id = idByName.get(name);
+    if (id) ids.push(id);
+    else unlinked.push(name);
+  }
+  return { ids, unlinked };
+};
+
+// Posts to a login-protected move route and returns its JSON; throws with the server's error text
+const postAuthed = async <T>(path: string, accessToken: string, body: unknown, fetchImpl: typeof fetch): Promise<T> => {
+  const res = await fetchImpl(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `${path} returned ${res.status}`);
+  }
+  return res.json();
+};
+
+export const moveTeamsToVoice = (
+  teams: [string[], string[]],
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<MoveResult> => postAuthed("/api/move-to-voice", accessToken, { teams }, fetchImpl);
+
+export const moveOutcomeStatus = (
+  result: MoveResult,
+  idToName: Record<string, string>,
+  unlinked: string[]
+): string => {
+  const names = (ids: string[]) => ids.map((id) => idToName[id] ?? id).join(", ");
+  return [
+    `${result.moved.length} verplaatst`,
+    result.notInVoice.length > 0 && `niet in voice: ${names(result.notInVoice)}`,
+    unlinked.length > 0 && `geen Discord: ${unlinked.join(", ")}`,
+    result.failed.length > 0 && `mislukt: ${names(result.failed)}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+};
+
+export interface GatherResult {
+  moved: string[];
+  failed: string[];
+}
+
+export const gatherToLobby = (accessToken: string, fetchImpl: typeof fetch = fetch): Promise<GatherResult> =>
+  postAuthed("/api/gather-to-lobby", accessToken, {}, fetchImpl);
+
+export const gatherOutcomeStatus = (result: GatherResult, idToName: Record<string, string>): string => {
+  const { moved, failed } = result;
+  if (moved.length === 0 && failed.length === 0) return "Niemand te verplaatsen";
+  const status = `${moved.length} naar Lobby verplaatst`;
+  if (failed.length === 0) return status;
+  const known = failed.filter((id) => idToName[id]);
+  return `${status} · mislukt: ${known.length === failed.length ? known.map((id) => idToName[id]).join(", ") : failed.length}`;
+};
