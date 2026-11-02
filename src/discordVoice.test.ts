@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import {
   fetchVoiceDiscordIds,
+  gatherOutcomeStatus,
+  gatherToLobby,
   moveOutcomeStatus,
   moveTeamsToVoice,
   playersInVoice,
@@ -136,6 +138,47 @@ describe("moveOutcomeStatus", () => {
   it("falls back to the ID for an unknown name", () => {
     expect(moveOutcomeStatus({ moved: [], notInVoice: ["9"], failed: [] }, names, [])).toBe(
       "0 verplaatst · niet in voice: 9"
+    );
+  });
+});
+
+describe("gatherToLobby", () => {
+  it("posts to /api/gather-to-lobby with the access token", async () => {
+    const result = { moved: ["1"], failed: [] };
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(result)));
+    expect(await gatherToLobby("jwt", fetchImpl)).toEqual(result);
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("/api/gather-to-lobby");
+    expect(init.method).toBe("POST");
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer jwt");
+  });
+
+  it("throws with the server's error text", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ error: "Discord niet bereikbaar" }), { status: 502 }));
+    await expect(gatherToLobby("jwt", fetchImpl)).rejects.toThrow("Discord niet bereikbaar");
+  });
+});
+
+describe("gatherOutcomeStatus", () => {
+  const names = { "1": "Rolf", "2": "Arjan" };
+
+  it("counts who went to the Lobby", () => {
+    expect(gatherOutcomeStatus({ moved: ["1", "2", "3"], failed: [] }, names)).toBe("3 naar Lobby verplaatst");
+  });
+
+  it("says so when nobody needed moving", () => {
+    expect(gatherOutcomeStatus({ moved: [], failed: [] }, names)).toBe("Niemand te verplaatsen");
+  });
+
+  it("names failures when all are known", () => {
+    expect(gatherOutcomeStatus({ moved: ["1"], failed: ["2"] }, names)).toBe(
+      "1 naar Lobby verplaatst · mislukt: Arjan"
+    );
+  });
+
+  it("falls back to a count when a failed ID has no known name", () => {
+    expect(gatherOutcomeStatus({ moved: ["1"], failed: ["9"] }, names)).toBe(
+      "1 naar Lobby verplaatst · mislukt: 1"
     );
   });
 });

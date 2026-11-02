@@ -55,22 +55,25 @@ export const teamDiscordIds = (
   return { ids, unlinked };
 };
 
-export const moveTeamsToVoice = async (
-  teams: [string[], string[]],
-  accessToken: string,
-  fetchImpl: typeof fetch = fetch
-): Promise<MoveResult> => {
-  const res = await fetchImpl("/api/move-to-voice", {
+// Posts to a login-protected move route and returns its JSON; throws with the server's error text
+const postAuthed = async <T>(path: string, accessToken: string, body: unknown, fetchImpl: typeof fetch): Promise<T> => {
+  const res = await fetchImpl(path, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify({ teams }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `move-to-voice returned ${res.status}`);
+    throw new Error(err.error || `${path} returned ${res.status}`);
   }
   return res.json();
 };
+
+export const moveTeamsToVoice = (
+  teams: [string[], string[]],
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<MoveResult> => postAuthed("/api/move-to-voice", accessToken, { teams }, fetchImpl);
 
 export const moveOutcomeStatus = (
   result: MoveResult,
@@ -86,4 +89,21 @@ export const moveOutcomeStatus = (
   ]
     .filter(Boolean)
     .join(" · ");
+};
+
+export interface GatherResult {
+  moved: string[];
+  failed: string[];
+}
+
+export const gatherToLobby = (accessToken: string, fetchImpl: typeof fetch = fetch): Promise<GatherResult> =>
+  postAuthed("/api/gather-to-lobby", accessToken, {}, fetchImpl);
+
+export const gatherOutcomeStatus = (result: GatherResult, idToName: Record<string, string>): string => {
+  const { moved, failed } = result;
+  if (moved.length === 0 && failed.length === 0) return "Niemand te verplaatsen";
+  const status = `${moved.length} naar Lobby verplaatst`;
+  if (failed.length === 0) return status;
+  const known = failed.filter((id) => idToName[id]);
+  return `${status} · mislukt: ${known.length === failed.length ? known.map((id) => idToName[id]).join(", ") : failed.length}`;
 };
