@@ -402,8 +402,8 @@ function App() {
     return Math.round(baseRating + modifier);
   };
 
-  const teamTotal = (team: PlayerStats[]) =>
-    Math.round(team.reduce((sum, player) => sum + player.strength, 0));
+  const teamAverage = (team: PlayerStats[]) =>
+    Math.round(team.reduce((sum, player) => sum + player.strength, 0) / team.length);
 
   const strengthDifferenceIndicator = (match: TeamResults) => {
     // Direction comes from the handicap-adjusted gap, so an uneven split shows
@@ -668,9 +668,9 @@ function App() {
                         <div
                           className="text-gray-400 whitespace-nowrap"
                           style={{ fontSize: 'clamp(0.65rem, 1.8vw, 0.85rem)' }}
-                          title="Som van de ratings in dit team"
+                          title="Gemiddelde rating van dit team"
                         >
-                          Σ {teamTotal(match.team1)}
+                          ⌀ {teamAverage(match.team1)}
                         </div>
                       </Card.Body>
                     </Card.Root>
@@ -684,6 +684,7 @@ function App() {
                       <div
                         className="text-cyber-cyan"
                         style={{ fontSize: 'clamp(0.75rem, 2vw, 1rem)' }}
+                        title="Afwijking van het doel: verschil in gemiddelde rating, na de handicap voor het kleine team"
                       >
                         {match.strengthDifference}
                       </div>
@@ -700,9 +701,9 @@ function App() {
                         <div
                           className="text-gray-400 whitespace-nowrap"
                           style={{ fontSize: 'clamp(0.65rem, 1.8vw, 0.85rem)' }}
-                          title="Som van de ratings in dit team"
+                          title="Gemiddelde rating van dit team"
                         >
-                          Σ {teamTotal(match.team2)}
+                          ⌀ {teamAverage(match.team2)}
                         </div>
                       </Card.Body>
                     </Card.Root>
