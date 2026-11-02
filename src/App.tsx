@@ -13,7 +13,7 @@ import { MatchHistory } from "./components/MatchHistory";
 import { PlayerStatsDisplay } from "./components/PlayerStats";
 import { RatingHistory } from "./components/RatingHistory";
 import { Auth } from "./components/Auth";
-import { getPlayerRatings, getHandicapCoefficient, getPlayers } from "./storage";
+import { getPlayerRatings, getHandicapCoefficient, getPlayers, calculateUnevenTeamHandicap } from "./storage";
 import {
   fetchVoiceDiscordIds,
   gatherOutcomeStatus,
@@ -261,6 +261,16 @@ function App() {
     return solutions[0].team1.length !== solutions[0].team2.length;
   }, [solutions]);
 
+  // Team sizes of the current uneven split, for the handicap summary
+  const unevenSizes = useMemo(() => {
+    if (!isUnevenTeams) return null;
+    const { team1, team2 } = solutions[0];
+    return {
+      small: Math.min(team1.length, team2.length),
+      large: Math.max(team1.length, team2.length),
+    };
+  }, [isUnevenTeams, solutions]);
+
   // Load players from storage
   useEffect(() => {
     const loadPlayers = async () => {
@@ -391,6 +401,9 @@ function App() {
     const modifier = buffedPlayers.includes(playerName) ? 50 : nerfedPlayers.includes(playerName) ? -50 : 0;
     return Math.round(baseRating + modifier);
   };
+
+  const teamTotal = (team: PlayerStats[]) =>
+    Math.round(team.reduce((sum, player) => sum + player.strength, 0));
 
   const strengthDifferenceIndicator = (match: TeamResults) => {
     // Direction comes from the handicap-adjusted gap, so an uneven split shows
@@ -573,9 +586,22 @@ function App() {
                 <span className="font-bold text-cyber-pink">{handicapOffset > 0 ? '+' : ''}{handicapOffset}%</span>
               </div>
               <div className="flex justify-between items-center text-sm text-gray-300 border-t border-cyber-cyan/20 pt-2">
-                <span>Totale Handicap:</span>
+                <span>Aangepaste basiswaarde:</span>
                 <span className="font-bold text-green-400">{Math.round(currentCoefficient * (1 + handicapOffset / 100))}</span>
               </div>
+              {unevenSizes && (
+                <p className="text-center text-sm md:text-base font-semibold text-gray-200">
+                  {unevenSizes.small}v{unevenSizes.large}: klein team ~
+                  <span className="text-green-400">
+                    {calculateUnevenTeamHandicap(
+                      unevenSizes.small,
+                      unevenSizes.large,
+                      currentCoefficient * (1 + handicapOffset / 100)
+                    )}
+                  </span>{" "}
+                  punten sterker (gemiddelde rating)
+                </p>
+              )}
             </div>
             <div className="flex gap-2 md:gap-4 items-center justify-center">
               <p className="text-sm md:text-base font-semibold text-red-400">Moeilijker</p>
@@ -631,7 +657,7 @@ function App() {
                 >
                   <div className="flex flex-row justify-between items-stretch gap-2">
                     <Card.Root className="flex-1 basis-0 glass-card">
-                      <Card.Body className="flex items-center justify-center h-full">
+                      <Card.Body className="flex flex-col items-center justify-center gap-1 h-full">
                         <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-1 text-center">
                           {match.team1.map((player, i) => (
                             <li key={i} className="text-sm md:text-base font-semibold text-cyber-cyan player-name-hover">
@@ -639,6 +665,13 @@ function App() {
                             </li>
                           ))}
                         </ul>
+                        <div
+                          className="text-gray-400 whitespace-nowrap"
+                          style={{ fontSize: 'clamp(0.65rem, 1.8vw, 0.85rem)' }}
+                          title="Som van de ratings in dit team"
+                        >
+                          Σ {teamTotal(match.team1)}
+                        </div>
                       </Card.Body>
                     </Card.Root>
                     <div className="flex flex-col items-center justify-center gap-1 px-2 sm:px-4 shrink-0">
@@ -656,7 +689,7 @@ function App() {
                       </div>
                     </div>
                     <Card.Root className="flex-1 basis-0 glass-card">
-                      <Card.Body className="flex items-center justify-center h-full">
+                      <Card.Body className="flex flex-col items-center justify-center gap-1 h-full">
                         <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-1 text-center">
                           {match.team2.map((player, i) => (
                             <li key={i} className="text-sm md:text-base font-semibold text-cyber-cyan player-name-hover">
@@ -664,6 +697,13 @@ function App() {
                             </li>
                           ))}
                         </ul>
+                        <div
+                          className="text-gray-400 whitespace-nowrap"
+                          style={{ fontSize: 'clamp(0.65rem, 1.8vw, 0.85rem)' }}
+                          title="Som van de ratings in dit team"
+                        >
+                          Σ {teamTotal(match.team2)}
+                        </div>
                       </Card.Body>
                     </Card.Root>
                   </div>
