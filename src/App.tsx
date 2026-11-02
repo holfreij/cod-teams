@@ -17,12 +17,16 @@ import { getPlayerRatings, getHandicapCoefficient, getPlayers } from "./storage"
 import {
   fetchVoiceDiscordIds,
   MIN_PLAYERS,
+  moveOutcomeStatus,
+  moveTeamsToVoice,
   playersInVoice,
   shouldApplyLoadResult,
+  teamDiscordIds,
   voiceSyncOutcome,
   type VoicePlayer,
 } from "./discordVoice";
 import { useAuth } from "./auth/AuthContext";
+import { supabase } from "./supabaseClient";
 import { useDebounce } from "./hooks/useDebounce";
 
 // Players who rarely join sessions: unchecked by default in "Selecteer spelers"
@@ -187,6 +191,36 @@ function App() {
   };
 
   const { user } = useAuth();
+
+  // Card index of the running move (disables every move button) and the status text shown on that card
+  const [movingIndex, setMovingIndex] = useState<number | null>(null);
+  const [moveStatus, setMoveStatus] = useState<{ index: number; text: string } | null>(null);
+
+  // Team 1 goes to CoD - Allegiance, team 2 to CoD - Coalition (the bot knows the channels)
+  const moveToDiscord = async (index: number, match: TeamResults) => {
+    setMovingIndex(index);
+    setMoveStatus(null);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Je moet ingelogd zijn");
+      const [team1, team2] = [match.team1, match.team2].map((team) => teamDiscordIds(team, voicePlayers));
+      const idToName = Object.fromEntries(
+        voicePlayers.filter((p) => p.discordId).map((p) => [p.discordId as string, p.name])
+      );
+      const result = await moveTeamsToVoice([team1.ids, team2.ids], session.access_token);
+      setMoveStatus({
+        index,
+        text: moveOutcomeStatus(result, idToName, [...team1.unlinked, ...team2.unlinked]),
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      setMoveStatus({ index, text: `Verplaatsen mislukt: ${reason}` });
+    } finally {
+      setMovingIndex(null);
+    }
+  };
 
   // Debounce handicap offset to avoid excessive recalculations while dragging slider
   const debouncedHandicapOffset = useDebounce(handicapOffset, 300);
@@ -607,18 +641,38 @@ function App() {
                       </Card.Body>
                     </Card.Root>
                   </div>
-                  {user && ((selectedTeam && teamsMatch(selectedTeam.team1, match.team1) && teamsMatch(selectedTeam.team2, match.team2)) || (!selectedTeam && index === 0)) && (
-                    <div className="flex justify-center">
-                      <Button
-                        className="cyber-btn-primary px-4 py-2 text-sm rounded-lg shadow-lg hover:shadow-neon-cyan transition-all duration-300 hover:scale-105"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedTeam({ team1: match.team1, team2: match.team2 });
-                          setIsRecordDialogOpen(true);
-                        }}
-                      >
-                        📝 Registreer uitslag
-                      </Button>
+                  {user && (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {((selectedTeam && teamsMatch(selectedTeam.team1, match.team1) && teamsMatch(selectedTeam.team2, match.team2)) || (!selectedTeam && index === 0)) && (
+                          <Button
+                            className="cyber-btn-primary px-4 py-2 text-sm rounded-lg shadow-lg hover:shadow-neon-cyan transition-all duration-300 hover:scale-105"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTeam({ team1: match.team1, team2: match.team2 });
+                              setIsRecordDialogOpen(true);
+                            }}
+                          >
+                            📝 Registreer uitslag
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          title="Team 1 (links) naar CoD - Allegiance, team 2 (rechts) naar CoD - Coalition"
+                          loading={movingIndex === index}
+                          disabled={movingIndex !== null}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void moveToDiscord(index, match);
+                          }}
+                        >
+                          🎧 Naar Discord kanalen
+                        </Button>
+                      </div>
+                      {moveStatus?.index === index && (
+                        <span className="text-sm text-gray-300 text-center">{moveStatus.text}</span>
+                      )}
                     </div>
                   )}
                 </Card.Body>

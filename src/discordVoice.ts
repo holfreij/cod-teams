@@ -30,3 +30,60 @@ export const fetchVoiceDiscordIds = async (fetchImpl: typeof fetch = fetch): Pro
   if (!Array.isArray(body?.discordIds)) throw new Error("voice-members returned no discordIds");
   return body.discordIds.map(String);
 };
+
+// --- Moving a proposed split into the Discord team channels (see server/voiceMove.js) ---
+
+export interface MoveResult {
+  moved: string[];
+  notInVoice: string[];
+  failed: string[];
+}
+
+// Names without a linked Discord account cannot be moved; they are reported, not dropped silently
+export const teamDiscordIds = (
+  team: { name: string }[],
+  players: VoicePlayer[]
+): { ids: string[]; unlinked: string[] } => {
+  const idByName = new Map(players.map((p) => [p.name, p.discordId]));
+  const ids: string[] = [];
+  const unlinked: string[] = [];
+  for (const { name } of team) {
+    const id = idByName.get(name);
+    if (id) ids.push(id);
+    else unlinked.push(name);
+  }
+  return { ids, unlinked };
+};
+
+export const moveTeamsToVoice = async (
+  teams: [string[], string[]],
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<MoveResult> => {
+  const res = await fetchImpl("/api/move-to-voice", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ teams }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `move-to-voice returned ${res.status}`);
+  }
+  return res.json();
+};
+
+export const moveOutcomeStatus = (
+  result: MoveResult,
+  idToName: Record<string, string>,
+  unlinked: string[]
+): string => {
+  const names = (ids: string[]) => ids.map((id) => idToName[id] ?? id).join(", ");
+  return [
+    `${result.moved.length} verplaatst`,
+    result.notInVoice.length > 0 && `niet in voice: ${names(result.notInVoice)}`,
+    unlinked.length > 0 && `geen Discord: ${unlinked.join(", ")}`,
+    result.failed.length > 0 && `mislukt: ${names(result.failed)}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+};
