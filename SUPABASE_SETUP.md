@@ -97,25 +97,10 @@ With Supabase:
    npm run dev
    ```
 
-#### For GitHub Pages Deployment:
+#### For Production (qmg.rolf.bible):
 
-1. Go to your GitHub repository
-2. Click **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
-4. Add two secrets:
-   - Name: `VITE_SUPABASE_URL`, Value: your project URL
-   - Name: `VITE_SUPABASE_ANON_KEY`, Value: your anon key
-
-5. Update your GitHub Actions workflow (`.github/workflows/deploy.yml`) to include:
-   ```yaml
-   - name: Build
-     run: npm run build
-     env:
-       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-   ```
-
-6. Push to trigger a new deployment
+The production build reads the same `.env` on the server; `npm run deploy` bakes the
+values into the bundle.
 
 ## Verifying It Works
 

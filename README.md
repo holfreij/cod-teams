@@ -68,8 +68,7 @@ Een slimme team-balancering applicatie voor Call of Duty multiplayer gaming sess
   - Real-time subscriptions
 
 ### Development & Deployment
-- **GitHub Pages** - Static hosting
-- **GitHub Actions** - CI/CD pipeline
+- **nginx** - Self-hosted op https://qmg.rolf.bible
 - **ESLint 9.17** - Code linting
 - **Node.js 20+** - Runtime requirement
 
@@ -126,7 +125,7 @@ Voor volledige functionaliteit met cloud opslag en authenticatie:
 5. Kopieer je Project URL en anon key naar `.env`
 6. Configureer Auth redirect URLs:
    - Development: `http://localhost:5173/`
-   - Production: `https://[username].github.io/cod-teams/`
+   - Production: `https://qmg.rolf.bible/`
 
 Zie [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) voor gedetailleerde instructies.
 
@@ -332,29 +331,15 @@ Alle tables hebben RLS enabled:
 
 ## 📦 Deployment
 
-### GitHub Pages (Automatisch)
+### qmg.rolf.bible (self-hosted)
 
-De app deployed automatisch naar GitHub Pages bij elke push naar `main`:
+```bash
+npm run deploy   # build + rsync naar /var/www/qmg.rolf.bible/html
+```
 
-1. **Push naar main branch**
-   ```bash
-   git push origin main
-   ```
-
-2. **GitHub Actions workflow**
-   - `.github/workflows/jekyll-gh-pages.yml` triggered
-   - Installeert dependencies
-   - Bouwt productie bundle met Supabase secrets
-   - Deployed naar GitHub Pages
-
-3. **Toegang tot app**
-   - URL: `https://[username].github.io/cod-teams/`
-
-**Vereisten**:
-- GitHub Pages enabled in repository settings
-- GitHub Secrets geconfigureerd:
-  - `VITE_SUPABASE_URL`
-  - `VITE_SUPABASE_ANON_KEY`
+`deploy.sh` (cron) deployt ook automatisch zodra `origin/main` verandert. De backend
+(`server/`) draait als systemd service `cod-teams-server`; nginx config staat in
+`qmg.rolf.bible.nginx`.
 
 ### Handmatige Deployment
 
@@ -423,10 +408,6 @@ cod-teams/
 │           ├── checkbox.tsx
 │           ├── slider.tsx
 │           └── ...
-│
-├── .github/
-│   └── workflows/
-│       └── jekyll-gh-pages.yml    # CI/CD deployment
 │
 ├── public/                        # Static assets
 ├── dist/                          # Build output (generated)
@@ -544,7 +525,7 @@ npm run lint  # Check code style
 - Verify `VITE_BASE_PATH` is correct
 - Check redirect URLs in Supabase dashboard:
   - Local: `http://localhost:5173/`
-  - Production: `https://[user].github.io/cod-teams/`
+  - Production: `https://qmg.rolf.bible/`
 
 ### Performance Issues
 

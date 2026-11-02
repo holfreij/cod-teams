@@ -13,7 +13,7 @@
 - **Tech Stack**: React 18.3 + TypeScript 5.6 + Vite 6.0 + Chakra UI 3.5 + Tailwind CSS 4.0 + Recharts
 - **Backend**: Supabase (PostgreSQL + Auth) with localStorage fallback, plus a small Express server (`server/`) for AI screenshot analysis
 - **Language**: UI text is in Dutch (Nederlandse)
-- **Deployment**: PRODUCTION is self-hosted at https://qmg.rolf.bible via `npm run deploy` (build with `VITE_BASE_PATH=/` + rsync to nginx webroot). The GitHub Pages workflow deploys a SEPARATE copy to github.io — that is NOT the production site. A plain `npm run build` uses base path `/cod-teams/` and will blank-page qmg.rolf.bible if rsynced.
+- **Deployment**: PRODUCTION is self-hosted at https://qmg.rolf.bible via `npm run deploy` (build + rsync to nginx webroot). There is no GitHub Pages copy any more (workflow removed 2026-11-02).
 - **Tests**: vitest (`npm test`) covers the rating math (src/*.test.ts)
 - **Branch**: work happens directly on `main`
 
@@ -50,9 +50,9 @@
 - **`src/supabaseClient.ts`** - Supabase initialization
 
 ### Configuration
-- **`vite.config.ts`** - Build config, base path `/cod-teams/`
+- **`vite.config.ts`** - Build config, base path `/`
 - **`tsconfig.app.json`** - TypeScript strict mode, path aliases
-- **`.github/workflows/jekyll-gh-pages.yml`** - CI/CD deployment
+- **`qmg.rolf.bible.nginx`** - nginx site config (copy of `/etc/nginx/sites-available/qmg.rolf.bible`)
 
 ### Database
 - **`supabase-migration.sql`** - Complete database schema with initial data
@@ -328,7 +328,7 @@ Match recording enabled
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_BASE_PATH=/cod-teams/  # Default for GitHub Pages
+VITE_BASE_PATH=/  # Default
 ```
 
 **Optional**: App works without Supabase (localStorage fallback).
@@ -339,21 +339,19 @@ VITE_BASE_PATH=/cod-teams/  # Default for GitHub Pages
 
 ### Production: qmg.rolf.bible (self-hosted, THIS machine)
 1. Frontend: `npm run deploy` — builds with `VITE_BASE_PATH=/` and rsyncs `dist/` to
-   `/var/www/qmg.rolf.bible/html` (nginx webroot). NEVER rsync a plain `npm run build`:
-   the default base path `/cod-teams/` blank-pages the site.
+   `/var/www/qmg.rolf.bible/html` (nginx webroot). `deploy.sh` (cron) also auto-deploys
+   whenever `origin/main` moves.
 2. Backend: nginx proxies `/api/` to the `cod-teams-server` systemd service, which runs
    `server/index.js` straight from this repo's working tree. Server changes require
    `sudo systemctl restart cod-teams-server` (Claude has no sudo — ask Rolf).
 3. Schema changes: only anon keys exist on this box; DDL goes through the Supabase
    dashboard SQL editor (ask Rolf to run it).
-4. Users with open tabs keep running the old bundle after a deploy (no cache headers);
-   a hard refresh is needed to pick up changes.
+4. nginx serves `index.html` with `Cache-Control: no-cache` and the hashed `/assets/`
+   as immutable, so a normal reload picks up a new deploy (open tabs still run the old
+   bundle until reloaded).
 5. Verify deploys by rendering in a real browser (`npx playwright screenshot ...`),
    not just curl.
 
-### GitHub Pages (secondary copy, automatic)
-Push to `main` → `.github/workflows/jekyll-gh-pages.yml` builds (base `/cod-teams/`,
-Supabase secrets from repo settings) and deploys to github.io. Not the production site.
 
 ---
 
@@ -404,7 +402,7 @@ npx tsc --noEmit  # Type check without building
 ### Authentication Issues
 - Check Supabase Email Auth is enabled
 - Verify redirect URLs in Supabase dashboard
-- Production URL: `https://[user].github.io/cod-teams/`
+- Production URL: `https://qmg.rolf.bible/`
 - Local URL: `http://localhost:5173/`
 
 ---
