@@ -1,3 +1,7 @@
+/* Chakra injects its layers at runtime, after this file, which would rank its
+   reset and recipes above Tailwind utilities and silently drop classes like
+   bg-* and border-* on Chakra components. Fix the order up front instead. */
+@layer reset, base, tokens, recipes, theme, components, utilities;
 @import "tailwindcss";
 
 /* Cyberpunk Theme Extension */

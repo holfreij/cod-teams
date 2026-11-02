@@ -110,7 +110,7 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
             <div className="hidden [@media(pointer:coarse)]:flex flex-1">
               <Button
                 onClick={() => cameraInputRef.current?.click()}
-                className="cyber-btn-primary px-4 py-3 rounded-lg w-full text-base min-h-[48px]"
+                className="cyber-btn-primary px-2 py-3 rounded-lg w-full text-sm sm:text-base min-h-[48px]"
                 disabled={loading}
               >
                 Maak foto
@@ -118,13 +118,13 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
             </div>
             <Button
               onClick={() => fileInputRef.current?.click()}
-              className="cyber-btn-primary px-4 py-3 rounded-lg flex-1 text-base min-h-[48px]"
+              className="cyber-btn-primary px-2 py-3 rounded-lg flex-1 text-sm sm:text-base min-h-[48px]"
               disabled={loading}
             >
               Upload screenshot
             </Button>
           </div>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 [@media(pointer:coarse)]:hidden">
             of plak een screenshot (Ctrl+V)
           </span>
         </div>

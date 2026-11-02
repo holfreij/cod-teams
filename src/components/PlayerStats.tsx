@@ -55,15 +55,15 @@ export const PlayerStatsDisplay = ({ refreshToken = 0 }: PlayerStatsDisplayProps
           </Heading>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs sm:text-sm tabular-nums">
               <thead>
                 <tr className="border-b border-cyber-cyan/30">
-                  <th className="text-left py-2 px-2 text-cyber-cyan font-display">Speler</th>
-                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">Rating</th>
-                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">Gespeeld</th>
-                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">W</th>
-                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">L</th>
-                  <th className="text-center py-2 px-2 text-cyber-cyan font-display">Win %</th>
+                  <th className="text-left py-2 px-1 sm:px-2 text-cyber-cyan font-display">Speler</th>
+                  <th className="text-center py-2 px-1 sm:px-2 text-cyber-cyan font-display">Rating</th>
+                  <th className="text-center py-2 px-1 sm:px-2 text-cyber-cyan font-display">Gespeeld</th>
+                  <th className="text-center py-2 px-1 sm:px-2 text-cyber-cyan font-display">W</th>
+                  <th className="text-center py-2 px-1 sm:px-2 text-cyber-cyan font-display">L</th>
+                  <th className="text-center py-2 px-1 sm:px-2 text-cyber-cyan font-display">Win %</th>
                 </tr>
               </thead>
               <tbody>
@@ -78,14 +78,14 @@ export const PlayerStatsDisplay = ({ refreshToken = 0 }: PlayerStatsDisplayProps
                       key={player.name}
                       className="border-b border-cyber-dark-secondary hover:bg-cyber-dark-secondary/50 transition-colors"
                     >
-                      <td className="py-2 px-2 font-semibold text-cyber-cyan">{player.name}</td>
-                      <td className="py-2 px-2 text-center font-bold text-white">
+                      <td className="py-2 px-1 sm:px-2 font-semibold text-cyber-cyan whitespace-nowrap">{player.name}</td>
+                      <td className="py-2 px-1 sm:px-2 text-center font-bold text-white">
                         {player.rating}
                       </td>
-                      <td className="py-2 px-2 text-center">{player.gamesPlayed}</td>
-                      <td className="py-2 px-2 text-center text-cyber-cyan">{player.wins}</td>
-                      <td className="py-2 px-2 text-center text-cyber-pink">{player.losses}</td>
-                      <td className="py-2 px-2 text-center">{winRate}%</td>
+                      <td className="py-2 px-1 sm:px-2 text-center">{player.gamesPlayed}</td>
+                      <td className="py-2 px-1 sm:px-2 text-center text-cyber-cyan">{player.wins}</td>
+                      <td className="py-2 px-1 sm:px-2 text-center text-cyber-pink">{player.losses}</td>
+                      <td className="py-2 px-1 sm:px-2 text-center">{winRate}%</td>
                     </tr>
                   );
                 })}

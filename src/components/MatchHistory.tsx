@@ -315,21 +315,21 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
   };
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleString();
+    return new Date(date).toLocaleString("nl-NL", { dateStyle: "short", timeStyle: "short" });
   };
 
   return (
     <div className="w-full max-w-4xl">
       <Card.Root className="shadow-xl glass-card transition-all duration-300 hover:shadow-neon-cyan/30">
         <Card.Body className="flex flex-col gap-4">
-          <div className="flex justify-between items-center">
-            <Heading className="text-xl md:text-2xl font-display font-bold text-cyber-cyan">
+          <div className="flex flex-wrap justify-between items-center gap-3">
+            <Heading className="text-xl md:text-2xl font-display font-bold text-cyber-cyan whitespace-nowrap">
               📊 Geschiedenis
             </Heading>
             {user && allPlayers.length > 0 && (
               <DialogRoot open={isRecordDialogOpen} onOpenChange={(e) => handleDialogOpenChange(e.open)}>
                 <DialogTrigger asChild>
-                  <Button className="cyber-btn-primary px-4 py-2 rounded-lg shadow-lg hover:shadow-neon-cyan transition-all duration-300 hover:scale-105">
+                  <Button className="cyber-btn-primary w-full sm:w-auto px-4 py-2 rounded-lg shadow-lg hover:shadow-neon-cyan transition-all duration-300 sm:hover:scale-105">
                     📝 Registreer uitslag
                   </Button>
                 </DialogTrigger>
@@ -490,8 +490,8 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
                   >
                     <Card.Body>
                       <div className="flex flex-col gap-2">
-                        <div className="flex justify-between items-start">
-                          <div className="text-xs text-gray-500">
+                        <div className="flex justify-between items-center gap-2">
+                          <div className="text-xs text-gray-500 min-w-0">
                             <span className="text-cyber-pink/60">{formatDate(match.date)}</span>
                             <span className="text-purple-400/70"> • {GAME_MODES[toGameMode(match.gameMode)].label}</span>
                             {match.mapPlayed && <span className="text-cyber-cyan/60"> • {match.mapPlayed}</span>}
@@ -499,8 +499,10 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
                           {user && (
                             <Button
                               size="sm"
+                              variant="ghost"
+                              title="Verwijder wedstrijd"
                               onClick={() => handleDeleteMatch(match.id)}
-                              className="text-red-400 hover:text-red-300"
+                              className="shrink-0 opacity-60 hover:opacity-100 hover:bg-red-500/15"
                             >
                               🗑️
                             </Button>

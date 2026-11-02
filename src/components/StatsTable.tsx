@@ -20,7 +20,17 @@ interface StatsTableProps {
 }
 
 export const StatsTable = ({ players, teamColor, ratingChanges }: StatsTableProps) => (
-  <table className="w-full text-xs">
+  // Fixed column widths keep both teams' tables aligned when shown stacked
+  <table className="w-full text-xs table-fixed tabular-nums">
+    <colgroup>
+      <col />
+      <col className="w-11" />
+      <col className="w-7" />
+      <col className="w-7" />
+      <col className="w-7" />
+      <col className="w-8" />
+      {ratingChanges && <col className="w-9" />}
+    </colgroup>
     <thead>
       <tr className={`text-${teamColor}/70`}>
         <th className="text-left font-medium py-0.5">Speler</th>
@@ -35,7 +45,7 @@ export const StatsTable = ({ players, teamColor, ratingChanges }: StatsTableProp
     <tbody>
       {players.map((p) => (
         <tr key={p.name} className="text-gray-300">
-          <td className={`text-left py-0.5 text-${teamColor}`}>{p.name}</td>
+          <td className={`text-left py-0.5 truncate text-${teamColor}`}>{p.name}</td>
           <td className="text-right py-0.5">{p.score}</td>
           <td className="text-right py-0.5">{p.kills}</td>
           <td className="text-right py-0.5">{p.deaths}</td>
