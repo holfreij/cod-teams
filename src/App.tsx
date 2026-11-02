@@ -136,11 +136,14 @@ const teamsMatch = (team1: PlayerStats[], team2: PlayerStats[]): boolean => {
   return names1.every((name, i) => name === names2[i]);
 };
 
+const BALANCED_THRESHOLD = 75;
+const LOPSIDED_THRESHOLD = 300;
+
 const getBackgroundStyle = (strengthDifference: number) => {
-  // Thresholds scaled for ELO ratings (1000-2500 range)
-  if (strengthDifference <= 235) {
+  // Thresholds on the effective average-rating gap: 75 ≈ 60/40, 300 ≈ 85/15 odds
+  if (strengthDifference <= BALANCED_THRESHOLD) {
     return "bg-gradient-to-r from-green-900 to-green-800 shadow-neon-cyan";
-  } else if (strengthDifference >= 940) {
+  } else if (strengthDifference >= LOPSIDED_THRESHOLD) {
     return "bg-gradient-to-r from-red-900 to-red-800 shadow-neon-pink";
   }
   return "bg-gradient-to-r from-yellow-700 to-yellow-600 shadow-lg shadow-yellow-700/50";
@@ -390,25 +393,12 @@ function App() {
   };
 
   const strengthDifferenceIndicator = (match: TeamResults) => {
-    // Thresholds scaled for ELO ratings
-    if (match.strengthDifference <= 235) return;
-    const team1Strength = match.team1.reduce(
-      (sum, player) => sum + player.strength,
-      0
-    );
-    const team2Strength = match.team2.reduce(
-      (sum, player) => sum + player.strength,
-      0
-    );
-    if (match.strengthDifference >= 940)
-      if (team1Strength > team2Strength) return ">>";
-      else {
-        return "<<";
-      }
-    if (team1Strength > team2Strength) return ">";
-    else {
-      return "<";
-    }
+    // Direction comes from the handicap-adjusted gap, so an uneven split shows
+    // which team is really favoured rather than which has more players
+    if (match.strengthDifference <= BALANCED_THRESHOLD) return;
+    const team1Favoured = match.team1Advantage > 0;
+    if (match.strengthDifference >= LOPSIDED_THRESHOLD) return team1Favoured ? ">>" : "<<";
+    return team1Favoured ? ">" : "<";
   };
 
   return (

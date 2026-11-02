@@ -2,8 +2,8 @@
  * Team Balancing Algorithm
  *
  * This module implements a sophisticated team balancing system for multiplayer games.
- * It generates all possible team combinations and evaluates them based on total
- * team strength (sum of player ELO ratings).
+ * It generates all possible team combinations and evaluates them based on
+ * average team rating (mean player ELO), with a handicap for uneven team sizes.
  *
  * Key Features:
  * - Handles even teams (3v3, 4v4) and uneven teams (2v3, 5v6)
@@ -17,7 +17,8 @@ import { PlayerStats } from './types';
 export type TeamResults = {
   team1: PlayerStats[];
   team2: PlayerStats[];
-  strengthDifference: number; // Lower values = more balanced teams
+  team1Advantage: number; // Effective average-rating gap, positive = team1 favoured
+  strengthDifference: number; // |team1Advantage|; lower values = more balanced teams
 };
 
 export type { PlayerStats };
@@ -64,13 +65,13 @@ function getCombinations<T>(arr: T[], size: number): T[][] {
  * Creates balanced team combinations from a list of players.
  *
  * This function generates all possible team combinations and evaluates their balance
- * by comparing total team strengths (sum of player ELO ratings). For uneven team sizes
+ * by comparing average team ratings (mean player ELO). For uneven team sizes
  * (e.g., 2v3, 5v6), it applies a handicap system to ensure fair matchups.
  *
  * @param players - Array of players with their ELO ratings
  * @param buffedPlayers - Players who are "on fire" (get temporary +50 ELO boost)
  * @param nerfedPlayers - Players having an off day (get temporary -50 ELO penalty)
- * @param handicapCoefficient - Base handicap value for uneven teams (typically 300)
+ * @param handicapCoefficient - Handicap coefficient for uneven teams (ELO points, adaptive)
  * @returns Array of all possible team combinations, sorted by balance quality
  */
 export function createBalancedTeams(
@@ -132,72 +133,37 @@ export function createBalancedTeams(
     if (seenTeams.has(teamKey)) continue;
     seenTeams.add(teamKey);
 
-    // Calculate total team strength (sum of all player ELO ratings)
-    let team1Strength = team1.reduce((sum, p) => sum + p.strength, 0);
-    let team2Strength = team2.reduce((sum, p) => sum + p.strength, 0);
+    // Compare team AVERAGE ratings, not sums. ELO is not a ratio scale (everyone
+    // sits around 1500), so with sums the extra player on the larger team counts
+    // as a whole ~1500 points the smaller team must make up - far more than the
+    // real disadvantage of playing one short, especially in bigger lobbies.
+    // Averages are also what the rating update uses (see MatchHistory), so the
+    // generator and the learned handicap describe the same thing.
+    const avg = (team: PlayerStats[]) =>
+      team.reduce((sum, p) => sum + p.strength, 0) / team.length;
+    let team1Strength = avg(team1);
+    let team2Strength = avg(team2);
 
     // ============================================================================
     // UNEVEN TEAM HANDICAP SYSTEM
     // ============================================================================
     //
-    // When teams have different sizes (e.g., 2v3 or 5v6), we apply a handicap
-    // to ensure fair matchups. The handicap is SUBTRACTED from the smaller team's
-    // strength during team generation.
-    //
-    // WHY SUBTRACT (NOT ADD)?
-    // -----------------------
-    // By subtracting points from the smaller team's strength, we make them appear
-    // WEAKER to the balancing algorithm. This forces the algorithm to compensate by
-    // assigning STRONGER players to the smaller team.
-    //
-    // EXAMPLE (2v3 scenario with handicap = 100):
-    // -----------------------
-    // Let's say we have 5 players with ratings: [2000, 1800, 1600, 1400, 1200]
-    //
-    // Without handicap:
-    //   Option A: Team1 (2 players): [2000, 1800] = 3800
-    //             Team2 (3 players): [1600, 1400, 1200] = 4200
-    //   Difference: 400 points (unbalanced!)
-    //
-    // With handicap subtracted from smaller team:
-    //   Option A: Team1 (2 players): [2000, 1800] = 3800 - 100 = 3700
-    //             Team2 (3 players): [1600, 1400, 1200] = 4200
-    //   Difference: 500 points (worse - algorithm rejects this)
-    //
-    //   Option B: Team1 (2 players): [2000, 1600] = 3600 - 100 = 3500
-    //             Team2 (3 players): [1800, 1400, 1200] = 4400
-    //   Difference: 900 points (even worse)
-    //
-    //   ✅ Best: Team1 (2 players): [2000, 1800] = 3800 - 100 = 3700
-    //             Team2 (3 players): [1600, 1400, 1200] = 4200
-    //   The algorithm naturally picks the combo where the smaller team has
-    //   the two STRONGEST players because only that minimizes the difference
-    //   after handicap subtraction.
-    //
-    // THE KEY INSIGHT:
-    // -----------------------
-    // The handicap subtraction creates an artificial gap that can ONLY be closed
-    // by giving the smaller team disproportionately strong players. The algorithm,
-    // seeking the minimum strength difference, is forced to make this choice.
+    // When teams have different sizes (e.g. 2v3 or 4v5), the smaller team is
+    // treated as `handicap` ELO points weaker than its average rating. To balance
+    // that, the algorithm must give the smaller team players whose average is
+    // about `handicap` points higher than the larger team's average.
     //
     // HANDICAP CALCULATION:
-    // -----------------------
-    // Handicap = Coefficient × (1 - SmallerSize / LargerSize)
-    //
-    // The ratio (1 - SmallerSize/LargerSize) represents the proportional disadvantage:
-    //   - 2v3: (1 - 2/3) = 0.33 → 33% disadvantage → handicap = coefficient × 0.33
-    //   - 5v6: (1 - 5/6) = 0.17 → 17% disadvantage → handicap = coefficient × 0.17
-    //   - 3v5: (1 - 3/5) = 0.40 → 40% disadvantage → handicap = coefficient × 0.40
-    //
-    // This ensures smaller teams with greater disadvantages receive proportionally
-    // larger handicaps, resulting in even stronger player assignments.
+    //   Handicap = Coefficient x (1 - SmallerSize / LargerSize)
+    //   - 2v3: 0.33 x coefficient
+    //   - 3v4: 0.25 x coefficient
+    //   - 4v5: 0.20 x coefficient
+    // One missing player hurts less the bigger the teams are.
     //
     // ADAPTIVE COEFFICIENT:
-    // -----------------------
-    // The coefficient (typically ~300) is NOT fixed. It learns from match results:
-    //   - If smaller teams win more than expected → coefficient decreases
-    //   - If smaller teams lose more than expected → coefficient increases
-    // This creates a feedback loop that converges on optimal team balance over time.
+    //   The coefficient learns from uneven match results (see
+    //   nextHandicapCoefficient in rating.ts): if the smaller team wins more than
+    //   expected it decreases, if it loses more than expected it increases.
     //
     // ============================================================================
 
@@ -205,17 +171,8 @@ export function createBalancedTeams(
     if (isUnevenTeams) {
       const smallerSize = Math.min(team1.length, team2.length);
       const largerSize = Math.max(team1.length, team2.length);
+      const handicap = handicapCoefficient * (1 - smallerSize / largerSize);
 
-      // Calculate proportional disadvantage (0 to 1 range)
-      // The more uneven the teams, the larger the ratio
-      const ratio = 1 - (smallerSize / largerSize);
-
-      // Calculate actual handicap points to subtract
-      // Example: coefficient=300, ratio=0.33 → handicap=100 points
-      const handicap = Math.round(handicapCoefficient * ratio);
-
-      // Subtract handicap from the SMALLER team's strength
-      // This forces the algorithm to assign them stronger players to compensate
       if (team1.length < team2.length) {
         team1Strength -= handicap;
       } else {
@@ -223,15 +180,16 @@ export function createBalancedTeams(
       }
     }
 
-    // Calculate the absolute difference between adjusted team strengths
-    // The algorithm will sort combinations by this value and prefer the smallest differences
-    const strengthDifference = Math.abs(team1Strength - team2Strength);
+    // Signed difference in effective average rating (positive = team1 favoured).
+    // The algorithm sorts by its absolute value and prefers the smallest.
+    const team1Advantage = Math.round(team1Strength - team2Strength);
 
     // Store this team combination with its balance score
     teamCombinations.push({
       team1,
       team2,
-      strengthDifference: strengthDifference, // Lower = more balanced
+      team1Advantage,
+      strengthDifference: Math.abs(team1Advantage), // Lower = more balanced
     });
 
     // Performance optimization: periodically prune results to keep only top N

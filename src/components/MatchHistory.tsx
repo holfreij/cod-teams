@@ -20,6 +20,7 @@ import {
   calculateRatingChange,
   calculatePerformanceRatingChanges,
   marginOfVictoryFactor,
+  expectedScore,
   DEFAULT_K_FACTOR,
   getPlayerRatings,
   getHandicapCoefficient,
@@ -270,9 +271,19 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
     // Adjust handicap coefficient based on match outcome (for uneven matches)
     if (isUnevenMatch) {
       const smallerTeamIsTeam1 = team1Size < team2Size;
-      const smallerTeamWon = smallerTeamIsTeam1 ? (winner === 1) : (winner === 2);
+      const smallerWinner = smallerTeamIsTeam1 ? 1 : 2;
+      const smallerActual = winner === smallerWinner ? 1 : winner === 0 ? 0.5 : 0;
+      const smallerExpected = smallerTeamIsTeam1
+        ? expectedScore(effectiveTeam1Avg, effectiveTeam2Avg)
+        : expectedScore(effectiveTeam2Avg, effectiveTeam1Avg);
 
-      await adjustHandicapCoefficient(coefficient, smallerTeamWon);
+      await adjustHandicapCoefficient(
+        coefficient,
+        Math.min(team1Size, team2Size),
+        Math.max(team1Size, team2Size),
+        smallerActual,
+        smallerExpected
+      );
     }
 
     setLoading(true);

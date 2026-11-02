@@ -3,6 +3,7 @@ import {
   calculateRatingChange,
   calculatePerformanceRatingChanges,
   marginOfVictoryFactor,
+  nextHandicapCoefficient,
   recomputeRatings,
   RatedPlayer,
 } from "./rating";
@@ -306,5 +307,28 @@ describe("recomputeRatings", () => {
     expect(ratings.Dave.rating).toBe(1507);
     expect(ratings.Dave.wins).toBe(1);
     expect(ratings.Eve.rating).toBe(1493);
+  });
+});
+
+describe("nextHandicapCoefficient", () => {
+  it("lowers the coefficient when the smaller team wins an even-odds match", () => {
+    // 4v5: handicap step 32 x 0.5 = 16 -> coefficient step 16 / 0.2 = 80
+    expect(nextHandicapCoefficient(1440, 4, 5, 1, 0.5)).toBe(1360);
+  });
+
+  it("raises the coefficient when the smaller team loses an even-odds match", () => {
+    // 2v3: 16 / (1/3) = 48
+    expect(nextHandicapCoefficient(1440, 2, 3, 0, 0.5)).toBe(1488);
+  });
+
+  it("barely moves on an expected result", () => {
+    // 3v4: 32 x (0.95 - 1) = -1.6 -> -1.6 / 0.25 = -6.4
+    expect(nextHandicapCoefficient(1440, 3, 4, 1, 0.95)).toBe(1434);
+  });
+
+  it("does not move on a draw at even odds, and clamps to its range", () => {
+    expect(nextHandicapCoefficient(1440, 3, 4, 0.5, 0.5)).toBe(1440);
+    expect(nextHandicapCoefficient(10, 4, 5, 1, 0.5)).toBe(0);
+    expect(nextHandicapCoefficient(2990, 4, 5, 0, 0.5)).toBe(3000);
   });
 });

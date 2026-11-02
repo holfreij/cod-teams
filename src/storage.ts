@@ -1,6 +1,6 @@
 import { MatchResult, PlayerMatchStats, PlayerRating } from './types';
 import { supabase } from './supabaseClient';
-import { recomputeRatings } from './rating';
+import { nextHandicapCoefficient, recomputeRatings } from './rating';
 import { toGameMode } from './gameMode';
 import { playerToRow, rowToPlayer, type Player, type PlayerRow } from './playerRows';
 export type { Player } from './playerRows';
@@ -9,6 +9,7 @@ export {
   calculateRatingChange,
   calculatePerformanceRatingChanges,
   marginOfVictoryFactor,
+  expectedScore,
   DEFAULT_K_FACTOR,
 } from './rating';
 
@@ -356,7 +357,7 @@ export const calculateUnevenTeamHandicap = (
 ): number => {
   if (smallerTeamSize === largerTeamSize) return 0;
 
-  // Handicap scales with team size ratio
+  // Handicap scales with team size ratio (must match algorithm.ts)
   // 2v3: (1 - 2/3) = 0.33 → coefficient * 0.33
   // 5v6: (1 - 5/6) = 0.17 → coefficient * 0.17
   // This means 2v3 gets double the handicap of 5v6
@@ -364,20 +365,23 @@ export const calculateUnevenTeamHandicap = (
   return Math.round(coefficient * ratio);
 };
 
-// Update handicap coefficient based on match outcome
-// If smaller team wins, reduce coefficient (handicap is too generous)
-// If smaller team loses, increase coefficient (handicap is not enough)
+// Update handicap coefficient based on match outcome, scaled by how surprising
+// it was (see nextHandicapCoefficient): a smaller team beating the odds lowers
+// it, a smaller team losing more than expected raises it.
 export const adjustHandicapCoefficient = async (
   currentCoefficient: number,
-  smallerTeamWon: boolean
+  smallerSize: number,
+  largerSize: number,
+  smallerActual: number,
+  smallerExpected: number
 ): Promise<number> => {
-  // Fixed adjustment amount per match
-  const adjustmentAmount = 20;
-
-  // If smaller team won, decrease coefficient; if they lost, increase it
-  const adjustment = smallerTeamWon ? -adjustmentAmount : adjustmentAmount;
-
-  const newCoefficient = Math.max(0, Math.min(3000, currentCoefficient + adjustment));
+  const newCoefficient = nextHandicapCoefficient(
+    currentCoefficient,
+    smallerSize,
+    largerSize,
+    smallerActual,
+    smallerExpected
+  );
   await updateHandicapCoefficient(newCoefficient);
 
   return newCoefficient;

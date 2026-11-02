@@ -43,8 +43,33 @@ export const marginOfVictoryFactor = (
 ): number =>
   MOV_BASE + (Math.abs(team1Score - team2Score) / winTarget) * MOV_RANGE;
 
-const expectedScore = (teamAvgRating: number, opponentAvgRating: number): number =>
+export const expectedScore = (teamAvgRating: number, opponentAvgRating: number): number =>
   1 / (1 + Math.pow(10, (opponentAvgRating - teamAvgRating) / 400));
+
+// Step size for learning the uneven-team handicap, in ELO points of handicap
+// per unit of surprise - the same scale as a player's K-factor.
+const HANDICAP_K = 32;
+const MAX_HANDICAP_COEFFICIENT = 3000;
+
+// Next uneven-team handicap coefficient after a match. Moves the handicap by
+// HANDICAP_K x (expected - actual) for the smaller team, so an upset moves it a
+// lot and an expected result barely at all. Converted back to coefficient
+// units via the size ratio: the same handicap step is a bigger coefficient
+// step in a 4v5 (ratio 0.2) than in a 2v3 (ratio 0.33).
+// smallerActual: 1 = smaller team won, 0.5 = draw, 0 = lost.
+export const nextHandicapCoefficient = (
+  currentCoefficient: number,
+  smallerSize: number,
+  largerSize: number,
+  smallerActual: number,
+  smallerExpected: number
+): number => {
+  const ratio = 1 - smallerSize / largerSize;
+  if (ratio <= 0) return currentCoefficient;
+  const handicapStep = HANDICAP_K * (smallerExpected - smallerActual);
+  const next = currentCoefficient + handicapStep / ratio;
+  return Math.round(Math.max(0, Math.min(MAX_HANDICAP_COEFFICIENT, next)));
+};
 
 // Calculate rating change based on ELO system
 // Using standard k-factor of 32 for active players
