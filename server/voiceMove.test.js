@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { moveTeams, voiceMoveHandler } from "./voiceMove.js";
+import { gatherToLobby, moveTeams, voiceGatherHandler, voiceMoveHandler } from "./voiceMove.js";
 
 const botBody = { moved: ["1"], not_in_voice: ["2"], failed: [] };
 const okFetch = (body = botBody) => vi.fn(async () => ({ ok: true, status: 200, json: async () => body }));
@@ -91,6 +91,63 @@ describe("voiceMoveHandler", () => {
   it("returns 502 when the bot fails", async () => {
     const fetchImpl = vi.fn(async () => { throw new Error("ECONNREFUSED"); });
     const res = await run({ fetchImpl });
+    expect(res.statusCode).toBe(502);
+    expect(res.body).toEqual({ error: "Discord niet bereikbaar" });
+  });
+});
+
+describe("gatherToLobby", () => {
+  it("posts with the bearer token and returns moved/failed", async () => {
+    const fetchImpl = okFetch({ moved: ["1"], failed: ["2"] });
+    expect(await gatherToLobby({ url: "http://bot/voice-gather", token: "t", fetchImpl })).toEqual({
+      moved: ["1"],
+      failed: ["2"],
+    });
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("http://bot/voice-gather");
+    expect(init.method).toBe("POST");
+    expect(init.headers.Authorization).toBe("Bearer t");
+  });
+
+  it("throws on a non-2xx bot response", async () => {
+    const fetchImpl = vi.fn(async () => ({ ok: false, status: 503, json: async () => ({}) }));
+    await expect(gatherToLobby({ url: "u", token: "t", fetchImpl })).rejects.toThrow("503");
+  });
+
+  it("throws when the response lacks moved/failed arrays", async () => {
+    await expect(gatherToLobby({ url: "u", token: "t", fetchImpl: okFetch({ moved: [] }) })).rejects.toThrow();
+  });
+});
+
+describe("voiceGatherHandler", () => {
+  const run = async (opts) => {
+    const res = fakeRes();
+    await voiceGatherHandler({ url: "u", token: "t", verifyUser: asUser, ...opts })({ body: {} }, res);
+    return res;
+  };
+
+  it("returns the result on success", async () => {
+    const res = await run({ fetchImpl: okFetch({ moved: ["1"], failed: [] }) });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ moved: ["1"], failed: [] });
+  });
+
+  it("returns 401 without calling the bot when there is no valid user", async () => {
+    const fetchImpl = okFetch();
+    const res = await run({ fetchImpl, verifyUser: async () => null });
+    expect(res.statusCode).toBe(401);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 when no token is configured", async () => {
+    const fetchImpl = okFetch();
+    const res = await run({ fetchImpl, token: "" });
+    expect(res.statusCode).toBe(503);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("returns 502 when the bot fails", async () => {
+    const res = await run({ fetchImpl: vi.fn(async () => { throw new Error("ECONNREFUSED"); }) });
     expect(res.statusCode).toBe(502);
     expect(res.body).toEqual({ error: "Discord niet bereikbaar" });
   });

@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "fs";
 import { ANALYSIS_PROMPT } from "./prompt.js";
 import { voiceMembersHandler } from "./voiceMembers.js";
-import { voiceMoveHandler } from "./voiceMove.js";
+import { voiceGatherHandler, voiceMoveHandler } from "./voiceMove.js";
 import { createRateLimiter, enforceRateLimit } from "./rateLimit.js";
 
 // Load .env manually (avoid dotenv dependency)
@@ -29,6 +29,7 @@ const {
   SUPABASE_ANON_KEY,
   VOICE_API_URL = "https://knoeks.rolf.bible/api/voice-members",
   VOICE_MOVE_URL = "https://knoeks.rolf.bible/api/voice-move",
+  VOICE_GATHER_URL = "https://knoeks.rolf.bible/api/voice-gather",
   VOICE_API_TOKEN = "",
   PORT = "3001",
 } = process.env;
@@ -156,6 +157,16 @@ app.post(
     next();
   },
   voiceMoveHandler({ url: VOICE_MOVE_URL, token: VOICE_API_TOKEN, verifyUser })
+);
+
+// Everyone in Discord voice (except AFK) to Lobby. Logged-in users only; shares the move route's budget.
+app.post(
+  "/api/gather-to-lobby",
+  (req, res, next) => {
+    if (!enforceRateLimit(voiceMoveRateLimiter, req, res)) return;
+    next();
+  },
+  voiceGatherHandler({ url: VOICE_GATHER_URL, token: VOICE_API_TOKEN, verifyUser })
 );
 
 app.listen(parseInt(PORT), "127.0.0.1", () => {
