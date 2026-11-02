@@ -460,21 +460,6 @@ function App() {
             >
               🎲 Kies willekeurige map
             </Button>
-            {user && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mb-2"
-                  title="Verplaatst iedereen in Discord voice naar Lobby (behalve AFK)"
-                  loading={isGathering}
-                  onClick={() => void gatherEveryoneToLobby()}
-                >
-                  🏠 Iedereen naar Lobby
-                </Button>
-                {gatherStatus && <div className="mb-2 text-sm text-gray-300 text-center">{gatherStatus}</div>}
-              </>
-            )}
             {randomMap && (
               <div className="mb-2 text-center text-lg md:text-xl font-display font-bold text-cyber-cyan animate-pulse">
                 {randomMap}
@@ -499,7 +484,19 @@ function App() {
             >
               🎧 Sync met Discord
             </Button>
+            {user && (
+              <Button
+                size="sm"
+                variant="outline"
+                title="Verplaatst iedereen in Discord voice naar Lobby (behalve AFK)"
+                loading={isGathering}
+                onClick={() => void gatherEveryoneToLobby()}
+              >
+                🏠 Iedereen naar Lobby
+              </Button>
+            )}
             {voiceSyncStatus && <span className="text-sm text-gray-300">{voiceSyncStatus}</span>}
+            {user && gatherStatus && <span className="text-sm text-gray-300">{gatherStatus}</span>}
           </div>
           <CheckboxGroup
             onValueChange={onActivePlayersChange}
