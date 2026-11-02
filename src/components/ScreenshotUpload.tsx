@@ -18,6 +18,7 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
   const [lowConfidence, setLowConfidence] = useState(false);
   const [result, setResult] = useState<ScreenshotAnalysisResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -79,6 +80,7 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
     setLoading(false);
     setResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
     onResult(null);
   };
 
@@ -91,16 +93,37 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
         onChange={handleFileChange}
         className="hidden"
       />
+      {/* capture opens the rear camera directly; desktop browsers ignore it */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileChange}
+        className="hidden"
+      />
 
       {!preview && !loading && (
         <div className="flex flex-col items-center gap-2">
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            className="cyber-btn-primary px-4 py-3 rounded-lg w-full text-base min-h-[48px]"
-            disabled={loading}
-          >
-            Upload screenshot
-          </Button>
+          <div className="flex gap-2 w-full">
+            {/* Only touch devices have a camera worth pointing at the TV */}
+            <div className="hidden [@media(pointer:coarse)]:flex flex-1">
+              <Button
+                onClick={() => cameraInputRef.current?.click()}
+                className="cyber-btn-primary px-4 py-3 rounded-lg w-full text-base min-h-[48px]"
+                disabled={loading}
+              >
+                Maak foto
+              </Button>
+            </div>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              className="cyber-btn-primary px-4 py-3 rounded-lg flex-1 text-base min-h-[48px]"
+              disabled={loading}
+            >
+              Upload screenshot
+            </Button>
+          </div>
           <span className="text-xs text-gray-500">
             of plak een screenshot (Ctrl+V)
           </span>
