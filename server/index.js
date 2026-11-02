@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "fs";
 import { ANALYSIS_PROMPT } from "./prompt.js";
 import { voiceMembersHandler } from "./voiceMembers.js";
+import { voiceMoveHandler } from "./voiceMove.js";
 import { createRateLimiter, enforceRateLimit } from "./rateLimit.js";
 
 // Load .env manually (avoid dotenv dependency)
@@ -27,6 +28,7 @@ const {
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
   VOICE_API_URL = "https://knoeks.rolf.bible/api/voice-members",
+  VOICE_MOVE_URL = "https://knoeks.rolf.bible/api/voice-move",
   VOICE_API_TOKEN = "",
   PORT = "3001",
 } = process.env;
@@ -44,31 +46,31 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 
-// Rate limiting: the paid screenshot-analysis route and the free voice-members
-// route each get their own budget, so one can't starve the other.
+// The Supabase user behind "Authorization: Bearer <jwt>", or null if missing/invalid
+async function verifyUser(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) return null;
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser(authHeader.slice(7));
+  return error || !user ? null : user;
+}
+
+// Rate limiting: each route gets its own budget, so one can't starve the others.
 const screenshotRateLimiter = createRateLimiter(10, 60_000);
 const voiceRateLimiter = createRateLimiter(30, 60_000);
+const voiceMoveRateLimiter = createRateLimiter(10, 60_000);
 
 // Clean up rate limit entries every 5 minutes
 setInterval(() => {
   screenshotRateLimiter.cleanup();
   voiceRateLimiter.cleanup();
+  voiceMoveRateLimiter.cleanup();
 }, 300_000);
 
 app.post("/api/analyze-screenshot", async (req, res) => {
-  // Verify auth
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Missing authorization token" });
-  }
-
-  const token = authHeader.slice(7);
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser(token);
-
-  if (authError || !user) {
+  if (!(await verifyUser(req))) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 
@@ -144,6 +146,16 @@ app.get(
     next();
   },
   voiceMembersHandler({ url: VOICE_API_URL, token: VOICE_API_TOKEN })
+);
+
+// Move a proposed team split into the Discord team voice channels. Logged-in users only.
+app.post(
+  "/api/move-to-voice",
+  (req, res, next) => {
+    if (!enforceRateLimit(voiceMoveRateLimiter, req, res)) return;
+    next();
+  },
+  voiceMoveHandler({ url: VOICE_MOVE_URL, token: VOICE_API_TOKEN, verifyUser })
 );
 
 app.listen(parseInt(PORT), "127.0.0.1", () => {
