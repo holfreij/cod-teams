@@ -3,7 +3,6 @@ import { Button } from "@chakra-ui/react";
 import { analyzeScreenshot } from "../services/screenshotAnalyzer";
 import type { ScreenshotAnalysisResult } from "../types";
 import { GAME_MODES } from "../gameMode";
-import { StatsTable } from "./StatsTable";
 
 interface ScreenshotUploadProps {
   // null = screenshot removed, previously reported stats no longer apply
@@ -169,6 +168,7 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
             )}
           </div>
 
+          {/* The parsed player rows are shown (and edited) by the record dialog */}
           {result && (result.team1Players.length > 0 || result.team2Players.length > 0) && (
             <>
               {result.team1Score != null && result.team2Score != null ? (
@@ -182,20 +182,6 @@ export const ScreenshotUpload = ({ onResult, dialogOpen }: ScreenshotUploadProps
                   Eindstand niet herkend — vul de scores handmatig in
                 </p>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                {result.team1Players.length > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold text-cyber-cyan mb-1">Team 1</p>
-                    <StatsTable players={result.team1Players} teamColor="cyber-cyan" />
-                  </div>
-                )}
-                {result.team2Players.length > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold text-cyber-pink mb-1">Team 2</p>
-                    <StatsTable players={result.team2Players} teamColor="cyber-pink" />
-                  </div>
-                )}
-              </div>
             </>
           )}
         </div>

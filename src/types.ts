@@ -28,6 +28,9 @@ export interface PlayerMatchStats {
   deaths: number;
   plants: number;
   defuses: number;
+  // Quit before the result screen (alt+F4), so CoD left them off the scoreboard;
+  // added by hand when recording. Stats are zeros, not real numbers.
+  left?: boolean;
 }
 
 export interface ScreenshotAnalysisResult {

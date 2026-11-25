@@ -6,6 +6,8 @@ import {
   nextHandicapCoefficient,
   recomputeRatings,
   RatedPlayer,
+  rateMatch,
+  replayRatingChanges,
 } from "./rating";
 import { MatchResult, PlayerMatchStats } from "./types";
 
@@ -192,6 +194,19 @@ describe("calculatePerformanceRatingChanges", () => {
       handicap: 400,
     });
     expect(changes).toEqual({ A: 13, B: -13 });
+  });
+
+  it("gives a player who left early the plain team delta, ignoring their zero row", () => {
+    const changes = calculatePerformanceRatingChanges({
+      team1: [player("A"), player("B")],
+      team2: [player("C"), player("D")],
+      team1Score: 10,
+      team2Score: 9,
+      team1Stats: [stats("A", 3000), { ...stats("B", 0), left: true }],
+      team2Stats: [stats("C", 2000), stats("D", 1000)],
+    });
+    // Same as B having no row at all
+    expect(changes).toEqual({ A: 21, B: 13, C: -13, D: -21 });
   });
 
   it("judges performance against the share the player's rating predicts", () => {
@@ -382,5 +397,89 @@ describe("nextHandicapCoefficient", () => {
     expect(nextHandicapCoefficient(1440, 3, 4, 0.5, 0.5)).toBe(1440);
     expect(nextHandicapCoefficient(10, 4, 5, 1, 0.5)).toBe(0);
     expect(nextHandicapCoefficient(2990, 4, 5, 0, 0.5)).toBe(3000);
+  });
+});
+
+describe("rateMatch", () => {
+  const base = {
+    team1Score: 10,
+    team2Score: 5, // MoV factor exactly 1
+    winTarget: 10,
+    handicapCoefficient: 1500,
+  };
+
+  it("uses classic team ELO without scoreboard rows", () => {
+    const { ratingChanges, nextCoefficient } = rateMatch({
+      ...base,
+      team1: [player("A"), player("B")],
+      team2: [player("C"), player("D")],
+    });
+    expect(ratingChanges).toEqual({ A: 16, B: 16, C: -16, D: -16 });
+    expect(nextCoefficient).toBe(1500); // even teams teach the handicap nothing
+  });
+
+  it("uses performance-weighted ELO with scoreboard rows", () => {
+    const { ratingChanges } = rateMatch({
+      ...base,
+      team1: [player("A"), player("B")],
+      team2: [player("C"), player("D")],
+      team1Stats: [stats("A", 3000), stats("B", 1000)],
+      team2Stats: [stats("C", 2000), stats("D", 2000)],
+    });
+    expect(ratingChanges.A).toBeGreaterThan(ratingChanges.B);
+  });
+
+  it("raises the handicap coefficient when the smaller team loses at even odds", () => {
+    const { nextCoefficient } = rateMatch({
+      ...base,
+      team1Score: 5,
+      team2Score: 10,
+      // 1v2 with coefficient 1000: handicap 500 cancels A's 500-point edge -> even odds
+      team1: [player("A", 2000)],
+      team2: [player("C"), player("D")],
+      handicapCoefficient: 1000,
+    });
+    expect(nextCoefficient).toBe(1032); // HANDICAP_K x 0.5 / ratio 0.5
+  });
+});
+
+describe("replayRatingChanges", () => {
+  const match = (id: string, date: string, overrides: Partial<MatchResult> = {}): MatchResult => ({
+    id,
+    date: new Date(date),
+    team1: [{ name: "A", strength: 0 }],
+    team2: [{ name: "B", strength: 0 }],
+    team1Score: 10,
+    team2Score: 5,
+    winner: 1,
+    gameMode: "search_and_destroy",
+    ratingChanges: { A: 999, B: -999 }, // stored values are ignored
+    ...overrides,
+  });
+  const players = [
+    { name: "A", initialElo: 1500 },
+    { name: "B", initialElo: 1500 },
+  ];
+
+  it("rates each match from the ratings the earlier matches produced, oldest first", () => {
+    const ratingChanges = replayRatingChanges(
+      players,
+      [match("2", "2026-01-02"), match("1", "2026-01-01")],
+      1500,
+      () => 10
+    );
+    expect(ratingChanges["1"]).toEqual({ A: 16, B: -16 });
+    // A is now the 1516-1484 favourite, so the second win is worth less
+    expect(ratingChanges["2"].A).toBe(15);
+  });
+
+  it("rates uneven matches with the given handicap coefficient", () => {
+    const uneven = match("1", "2026-01-01", {
+      team2: [{ name: "B", strength: 0 }, { name: "C", strength: 0 }],
+    });
+    const small = replayRatingChanges(players, [uneven], 0, () => 10)["1"];
+    const big = replayRatingChanges(players, [uneven], 1500, () => 10)["1"];
+    // A bigger handicap makes the lone winner a bigger underdog: more points
+    expect(big.A).toBeGreaterThan(small.A);
   });
 });

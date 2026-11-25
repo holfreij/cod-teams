@@ -110,8 +110,8 @@ export const expectedScoreShares = (
 // what lets ratings settle: a top scorer who is already rated as one gains
 // nothing extra for top-scoring again. Both shares average 1 over the lobby,
 // so the term sums to ~0 and redistributes points without inflating ratings.
-// Roster players without a stats row (missed by the model, or quit before the
-// scoreboard) get the plain team delta.
+// Roster players without a stats row (missed by the model) or with a `left`
+// row (quit before the scoreboard) get the plain team delta.
 export const calculatePerformanceRatingChanges = (
   input: PerformanceMatchInput
 ): { [playerName: string]: number } => {
@@ -131,10 +131,11 @@ export const calculatePerformanceRatingChanges = (
   const team1Delta = kFactor * (team1Actual - expectedScore(team1Avg, team2Avg)) * mov;
   const team2Delta = kFactor * (1 - team1Actual - expectedScore(team2Avg, team1Avg)) * mov;
 
-  // Only rows for roster players: their ratings set the expected shares
+  // Only real scoreboard rows for roster players: their ratings set the
+  // expected shares. A leaver's zero row is no performance.
   const roster = [...team1, ...team2];
-  const allStats = [...team1Stats, ...team2Stats].filter((s) =>
-    roster.some((p) => p.name === s.name)
+  const allStats = [...team1Stats, ...team2Stats].filter(
+    (s) => !s.left && roster.some((p) => p.name === s.name)
   );
   const meanScore = allStats.length
     ? allStats.reduce((sum, s) => sum + s.score, 0) / allStats.length
@@ -159,6 +160,155 @@ export const calculatePerformanceRatingChanges = (
     changes[p.name] = Math.round(team2Delta + performanceTerm(p.name));
   });
   return changes;
+};
+
+// Calculate handicap for uneven teams
+// Returns ELO points to SUBTRACT from smaller team's rating/strength
+// This compensates for their player count disadvantage
+export const calculateUnevenTeamHandicap = (
+  smallerTeamSize: number,
+  largerTeamSize: number,
+  coefficient: number
+): number => {
+  if (smallerTeamSize === largerTeamSize) return 0;
+
+  // Handicap scales with team size ratio (must match algorithm.ts)
+  // 2v3: (1 - 2/3) = 0.33 → coefficient * 0.33
+  // 5v6: (1 - 5/6) = 0.17 → coefficient * 0.17
+  // This means 2v3 gets double the handicap of 5v6
+  const ratio = 1 - (smallerTeamSize / largerTeamSize);
+  return Math.round(coefficient * ratio);
+};
+
+export interface MatchToRate {
+  // Players at their rating before this match
+  team1: RatedPlayer[];
+  team2: RatedPlayer[];
+  team1Score: number;
+  team2Score: number;
+  winTarget: number;
+  // Scoreboard rows from a screenshot; absent or empty for a manual entry
+  team1Stats?: PlayerMatchStats[];
+  team2Stats?: PlayerMatchStats[];
+  handicapCoefficient: number;
+}
+
+// Rating changes for one match, the way recording it does: performance-weighted
+// ELO when there are scoreboard rows, classic team ELO otherwise. Also returns
+// the uneven-team handicap coefficient as learned from this result (unchanged
+// for even teams).
+export const rateMatch = (
+  match: MatchToRate
+): { ratingChanges: { [playerName: string]: number }; nextCoefficient: number } => {
+  const { team1, team2, team1Score, team2Score, winTarget, handicapCoefficient } = match;
+  const smallerSize = Math.min(team1.length, team2.length);
+  const largerSize = Math.max(team1.length, team2.length);
+  const isUneven = smallerSize !== largerSize;
+
+  // The larger team has a material advantage: treat the smaller team as
+  // `handicap` ELO points weaker when computing expected outcomes, so a
+  // larger team gains less for winning and a shorthanded team loses less
+  const handicap = isUneven
+    ? calculateUnevenTeamHandicap(smallerSize, largerSize, handicapCoefficient)
+    : 0;
+  const avg = (players: RatedPlayer[]) =>
+    players.reduce((sum, p) => sum + p.rating, 0) / players.length;
+  const effectiveTeam1Avg = avg(team1) - (team1.length < team2.length ? handicap : 0);
+  const effectiveTeam2Avg = avg(team2) - (team2.length < team1.length ? handicap : 0);
+  const team1Actual = team1Score > team2Score ? 1 : team1Score < team2Score ? 0 : 0.5;
+
+  let ratingChanges: { [playerName: string]: number };
+  if (match.team1Stats?.length || match.team2Stats?.length) {
+    // Screenshot with per-player stats: performance-weighted ELO
+    // (margin of victory + individual performance vs rating expectation)
+    ratingChanges = calculatePerformanceRatingChanges({
+      team1,
+      team2,
+      team1Score,
+      team2Score,
+      team1Stats: match.team1Stats ?? [],
+      team2Stats: match.team2Stats ?? [],
+      winTarget,
+      handicap,
+    });
+  } else {
+    // Manual entry: classic team ELO, scaled by margin of victory relative to
+    // the mode's win target (S&D 10-9 counts 0.8x, 10-0 and Demolition 2-0 count 1.25x)
+    const movKFactor =
+      DEFAULT_K_FACTOR * marginOfVictoryFactor(team1Score, team2Score, winTarget);
+    const team1Change = calculateRatingChange(
+      effectiveTeam1Avg,
+      effectiveTeam2Avg,
+      team1Actual,
+      movKFactor
+    );
+    const team2Change = calculateRatingChange(
+      effectiveTeam2Avg,
+      effectiveTeam1Avg,
+      1 - team1Actual,
+      movKFactor
+    );
+    ratingChanges = {};
+    team1.forEach((p) => (ratingChanges[p.name] = team1Change));
+    team2.forEach((p) => (ratingChanges[p.name] = team2Change));
+  }
+
+  let nextCoefficient = handicapCoefficient;
+  if (isUneven) {
+    const smallerIsTeam1 = team1.length < team2.length;
+    const smallerActual = smallerIsTeam1 ? team1Actual : 1 - team1Actual;
+    const smallerExpected = smallerIsTeam1
+      ? expectedScore(effectiveTeam1Avg, effectiveTeam2Avg)
+      : expectedScore(effectiveTeam2Avg, effectiveTeam1Avg);
+    nextCoefficient = nextHandicapCoefficient(
+      handicapCoefficient,
+      smallerSize,
+      largerSize,
+      smallerActual,
+      smallerExpected
+    );
+  }
+
+  return { ratingChanges, nextCoefficient };
+};
+
+// Recompute every match's rating changes under the current rules, oldest
+// first: each match is rated from the ratings the replay itself produced so
+// far, starting from initial ELO. Uneven matches all use the given handicap
+// coefficient (the live one), so a replay changes ratings but not the handicap
+// teams are generated with. Used to apply a rating-rule change retroactively.
+export const replayRatingChanges = (
+  players: { name: string; initialElo: number }[],
+  matches: MatchResult[],
+  handicapCoefficient: number,
+  winTargetOf: (match: MatchResult) => number
+): { [matchId: string]: { [playerName: string]: number } } => {
+  const ratings: { [playerName: string]: number } = {};
+  players.forEach((p) => (ratings[p.name] = p.initialElo));
+  const rated = (team: { name: string }[]) =>
+    team.map((p) => ({ name: p.name, rating: ratings[p.name] ?? 1500 }));
+
+  const ratingChanges: { [matchId: string]: { [playerName: string]: number } } = {};
+  [...matches]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .forEach((match) => {
+      const changes = rateMatch({
+        team1: rated(match.team1),
+        team2: rated(match.team2),
+        team1Score: match.team1Score,
+        team2Score: match.team2Score,
+        winTarget: winTargetOf(match),
+        team1Stats: match.team1Stats,
+        team2Stats: match.team2Stats,
+        handicapCoefficient,
+      }).ratingChanges;
+      ratingChanges[match.id] = changes;
+      Object.entries(changes).forEach(([name, change]) => {
+        ratings[name] = (ratings[name] ?? 1500) + change;
+      });
+    });
+
+  return ratingChanges;
 };
 
 // Rebuild all player ratings from scratch: initial ELO plus every stored

@@ -11,22 +11,17 @@ import {
   DialogCloseTrigger,
 } from "@/components/ui/dialog";
 import { Button, Card, Heading, Input } from "@chakra-ui/react";
-import { MatchResult, PlayerMatchStats, PlayerStats, ScreenshotAnalysisResult } from "../types";
+import { MatchResult, PlayerStats, ScreenshotAnalysisResult } from "../types";
 import {
   getMatchHistory,
   deleteMatch,
   saveMatchResult,
   updatePlayerRatings,
-  calculateRatingChange,
-  calculatePerformanceRatingChanges,
-  marginOfVictoryFactor,
-  expectedScore,
-  DEFAULT_K_FACTOR,
   getPlayerRatings,
   getHandicapCoefficient,
-  adjustHandicapCoefficient,
-  calculateUnevenTeamHandicap,
+  updateHandicapCoefficient,
 } from "../storage";
+import { rateMatch } from "../rating";
 import { Field } from "@/components/ui/field";
 import {
   DEFAULT_GAME_MODE,
@@ -39,7 +34,8 @@ import {
 } from "../gameMode";
 import { ScreenshotUpload } from "./ScreenshotUpload";
 import { StatsTable, RatingDelta } from "./StatsTable";
-import { TeamSelection, findLeavers, toggleTeamMembership, withLeavers } from "../teamSelection";
+import { TeamSelection, toggleTeamMembership } from "../teamSelection";
+import { ScoreSheet, addLeaver, addablePlayers, removeLeaver } from "../scoreSheet";
 
 interface MapInfo {
   name: string;
@@ -94,13 +90,10 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
   const [selectedMap, setSelectedMap] = useState("");
   const [gameMode, setGameMode] = useState<GameMode>(DEFAULT_GAME_MODE);
   const [displayCount, setDisplayCount] = useState(50);
-  const [screenshotStats, setScreenshotStats] = useState<{
-    team1: PlayerMatchStats[];
-    team2: PlayerMatchStats[];
-  } | null>(null);
+  // Parsed scoreboard plus hand-added leavers (players who quit before the result screen)
+  const [screenshotStats, setScreenshotStats] = useState<ScoreSheet | null>(null);
 
   const handleScreenshotResult = (result: ScreenshotAnalysisResult | null) => {
-    setExcludedLeavers([]);
     if (!result) {
       setScreenshotStats(null);
       return;
@@ -110,7 +103,8 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
     // The result screen prints the mode ("Demolition | Hackney Yard"); keep the
     // current selection when it couldn't be read
     if (result.gameMode) setGameMode(result.gameMode);
-    // Only a full parse (both teams) can replace the manual team selection
+    // Only a full parse (both teams) can replace the manual team selection;
+    // players who quit before the scoreboard are added by hand from there
     setScreenshotStats(
       result.team1Players.length && result.team2Players.length
         ? { team1: result.team1Players, team2: result.team2Players }
@@ -140,20 +134,14 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
     setDisplayCount(prev => prev + 50);
   };
 
-  // Selected players missing from the parsed scoreboard (quit before the result
-  // screen); they count for their selected team unless unticked
-  const [excludedLeavers, setExcludedLeavers] = useState<string[]>([]);
-  const scoreboardNames = screenshotStats && {
-    team1: screenshotStats.team1.map((s) => s.name),
-    team2: screenshotStats.team2.map((s) => s.name),
-  };
-  const leavers = scoreboardNames ? findLeavers(scoreboardNames, manualTeams) : [];
-
   const handleRecordMatch = async () => {
-    // Roster: the parsed screenshot teams plus any leavers when available,
+    // Roster: the score sheet (scoreboard plus leavers) when available,
     // otherwise the manual selection
-    const rosterNames = scoreboardNames
-      ? withLeavers(scoreboardNames, leavers, excludedLeavers)
+    const rosterNames = screenshotStats
+      ? {
+          team1: screenshotStats.team1.map((s) => s.name),
+          team2: screenshotStats.team2.map((s) => s.name),
+        }
       : manualTeams;
 
     if (rosterNames.team1.length === 0 || rosterNames.team2.length === 0) {
@@ -178,85 +166,22 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
 
     const winner = score1 > score2 ? 1 : score1 < score2 ? 2 : 0;
 
-    // Calculate rating changes using pure ELO
+    // Rate from current ELO (stored rating, or initial strength for a new player)
     const ratings = await getPlayerRatings();
-
-    // Helper to get current ELO (stored rating or initial strength)
-    const getCurrentRating = (playerName: string, initialStrength: number) =>
-      ratings[playerName]?.rating ?? initialStrength;
-
-    const team1AvgRating =
-      team1.reduce((sum, p) => {
-        return sum + getCurrentRating(p.name, p.strength);
-      }, 0) / team1.length;
-
-    const team2AvgRating =
-      team2.reduce((sum, p) => {
-        return sum + getCurrentRating(p.name, p.strength);
-      }, 0) / team2.length;
-
-    // Track team sizes for handicap coefficient adjustment
-    const team1Size = team1.length;
-    const team2Size = team2.length;
-    const isUnevenMatch = team1Size !== team2Size;
-
-    // The larger team has a material advantage: treat the smaller team as
-    // `handicap` ELO points weaker when computing expected outcomes, so a
-    // larger team gains less for winning and a shorthanded team loses less
+    const ratedTeam = (team: PlayerStats[]) =>
+      team.map((p) => ({ name: p.name, rating: ratings[p.name]?.rating ?? p.strength }));
+    const isUnevenMatch = team1.length !== team2.length;
     const coefficient = isUnevenMatch ? await getHandicapCoefficient() : 0;
-    const handicap = isUnevenMatch
-      ? calculateUnevenTeamHandicap(
-          Math.min(team1Size, team2Size),
-          Math.max(team1Size, team2Size),
-          coefficient
-        )
-      : 0;
-    const effectiveTeam1Avg = team1Size < team2Size ? team1AvgRating - handicap : team1AvgRating;
-    const effectiveTeam2Avg = team2Size < team1Size ? team2AvgRating - handicap : team2AvgRating;
-
-    let ratingChanges: { [playerName: string]: number };
-
-    if (screenshotStats) {
-      // Screenshot with per-player stats: performance-weighted ELO
-      // (margin of victory + individual performance vs match average)
-      const ratedTeam = (team: PlayerStats[]) =>
-        team.map((p) => ({ name: p.name, rating: getCurrentRating(p.name, p.strength) }));
-      ratingChanges = calculatePerformanceRatingChanges({
-        team1: ratedTeam(team1),
-        team2: ratedTeam(team2),
-        team1Score: score1,
-        team2Score: score2,
-        team1Stats: screenshotStats.team1,
-        team2Stats: screenshotStats.team2,
-        winTarget: winTargetOf(gameMode),
-        handicap,
-      });
-    } else {
-      // Manual entry: classic team ELO, scaled by margin of victory relative to
-      // the mode's win target (S&D 10-9 counts 0.8x, 10-0 and Demolition 2-0 count 1.25x)
-      ratingChanges = {};
-      const team1Actual = winner === 1 ? 1 : winner === 0 ? 0.5 : 0;
-      const movKFactor =
-        DEFAULT_K_FACTOR * marginOfVictoryFactor(score1, score2, winTargetOf(gameMode));
-
-      team1.forEach((player) => {
-        ratingChanges[player.name] = calculateRatingChange(
-          effectiveTeam1Avg,
-          effectiveTeam2Avg,
-          team1Actual,
-          movKFactor
-        );
-      });
-
-      team2.forEach((player) => {
-        ratingChanges[player.name] = calculateRatingChange(
-          effectiveTeam2Avg,
-          effectiveTeam1Avg,
-          1 - team1Actual,
-          movKFactor
-        );
-      });
-    }
+    const { ratingChanges, nextCoefficient } = rateMatch({
+      team1: ratedTeam(team1),
+      team2: ratedTeam(team2),
+      team1Score: score1,
+      team2Score: score2,
+      winTarget: winTargetOf(gameMode),
+      team1Stats: screenshotStats?.team1,
+      team2Stats: screenshotStats?.team2,
+      handicapCoefficient: coefficient,
+    });
 
     const match: MatchResult = {
       id: Date.now().toString(),
@@ -276,23 +201,8 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
     await saveMatchResult(match);
     await updatePlayerRatings(match);
 
-    // Adjust handicap coefficient based on match outcome (for uneven matches)
-    if (isUnevenMatch) {
-      const smallerTeamIsTeam1 = team1Size < team2Size;
-      const smallerWinner = smallerTeamIsTeam1 ? 1 : 2;
-      const smallerActual = winner === smallerWinner ? 1 : winner === 0 ? 0.5 : 0;
-      const smallerExpected = smallerTeamIsTeam1
-        ? expectedScore(effectiveTeam1Avg, effectiveTeam2Avg)
-        : expectedScore(effectiveTeam2Avg, effectiveTeam1Avg);
-
-      await adjustHandicapCoefficient(
-        coefficient,
-        Math.min(team1Size, team2Size),
-        Math.max(team1Size, team2Size),
-        smallerActual,
-        smallerExpected
-      );
-    }
+    // Uneven matches teach the handicap coefficient (see nextHandicapCoefficient)
+    if (isUnevenMatch) await updateHandicapCoefficient(nextCoefficient);
 
     setLoading(true);
     const history = await getMatchHistory();
@@ -306,7 +216,6 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
     setSelectedMap("");
     setGameMode(DEFAULT_GAME_MODE);
     setScreenshotStats(null);
-    setExcludedLeavers([]);
     setManualTeams({ team1: [], team2: [] });
     handleDialogOpenChange(false);
   };
@@ -349,31 +258,40 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
                   <DialogBody className="flex flex-col gap-4">
                     <ScreenshotUpload onResult={handleScreenshotResult} dialogOpen={isRecordDialogOpen} />
 
-                    {leavers.length > 0 && (
-                      <div className="flex flex-col gap-1 p-3 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                        <p className="text-sm text-yellow-300">
-                          Niet op het scorebord (vroegtijdig gestopt?). Telt mee voor de teamuitslag, zonder prestatiebonus:
-                        </p>
-                        {leavers.map((l) => (
-                          <label
-                            key={l.name}
-                            className={`flex items-center gap-2 text-sm cursor-pointer select-none ${
-                              l.team === 1 ? "text-cyber-cyan" : "text-cyber-pink"
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={!excludedLeavers.includes(l.name)}
-                              onChange={() =>
-                                setExcludedLeavers((prev) =>
-                                  prev.includes(l.name) ? prev.filter((n) => n !== l.name) : [...prev, l.name]
-                                )
-                              }
-                              className="accent-current"
-                            />
-                            {l.name} (Team {l.team})
-                          </label>
-                        ))}
+                    {screenshotStats && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {([1, 2] as const).map((teamNo) => {
+                          const color = teamNo === 1 ? "cyber-cyan" : "cyber-pink";
+                          const candidates = addablePlayers(screenshotStats, allPlayers.map((p) => p.name));
+                          return (
+                            <div key={teamNo} className="flex flex-col gap-1">
+                              <p className={`text-xs font-semibold text-${color}`}>Team {teamNo}</p>
+                              <StatsTable
+                                players={teamNo === 1 ? screenshotStats.team1 : screenshotStats.team2}
+                                teamColor={color}
+                                onRemoveLeaver={(name) => setScreenshotStats(removeLeaver(screenshotStats, name))}
+                              />
+                              {candidates.length > 0 && (
+                                <select
+                                  value=""
+                                  onChange={(e) =>
+                                    e.target.value &&
+                                    setScreenshotStats(addLeaver(screenshotStats, teamNo, e.target.value))
+                                  }
+                                  title="Speler die vroegtijdig stopte en niet op het scorebord staat"
+                                  className="w-full h-8 px-2 bg-transparent border border-gray-600 rounded-lg text-xs text-gray-300 cursor-pointer focus:outline-none focus:border-blue-500"
+                                >
+                                  <option value="" className="bg-gray-800">+ Gestopte speler toevoegen…</option>
+                                  {candidates.map((name) => (
+                                    <option key={name} value={name} className="bg-gray-800">
+                                      {name}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
@@ -574,27 +492,16 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
 
                         {hasStats && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {([
-                              [match.team1, match.team1Stats!, "cyber-cyan"],
-                              [match.team2, match.team2Stats!, "cyber-pink"],
-                            ] as const).map(([team, stats, color]) => {
-                              // Rostered but not on the scoreboard: quit before the result screen
-                              const quit = team.filter((p) => !stats.some((s) => s.name === p.name));
-                              return (
-                                <div key={color}>
-                                  <StatsTable
-                                    players={stats}
-                                    teamColor={color}
-                                    ratingChanges={match.ratingChanges}
-                                  />
-                                  {quit.length > 0 && (
-                                    <div className="text-xs text-gray-400 mt-1">
-                                      Gestopt: {nameList(quit)}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                            <StatsTable
+                              players={match.team1Stats!}
+                              teamColor="cyber-cyan"
+                              ratingChanges={match.ratingChanges}
+                            />
+                            <StatsTable
+                              players={match.team2Stats!}
+                              teamColor="cyber-pink"
+                              ratingChanges={match.ratingChanges}
+                            />
                           </div>
                         )}
                       </div>

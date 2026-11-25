@@ -17,9 +17,11 @@ interface StatsTableProps {
   teamColor: string;
   // Per-player rating change for the match; adds a +/- column when provided
   ratingChanges?: { [playerName: string]: number };
+  // Adds a remove button to rows of players who left early (score sheet editing)
+  onRemoveLeaver?: (name: string) => void;
 }
 
-export const StatsTable = ({ players, teamColor, ratingChanges }: StatsTableProps) => (
+export const StatsTable = ({ players, teamColor, ratingChanges, onRemoveLeaver }: StatsTableProps) => (
   // Fixed column widths keep both teams' tables aligned when shown stacked
   <table className="w-full text-xs table-fixed tabular-nums">
     <colgroup>
@@ -45,12 +47,26 @@ export const StatsTable = ({ players, teamColor, ratingChanges }: StatsTableProp
     <tbody>
       {players.map((p) => (
         <tr key={p.name} className="text-gray-300">
-          <td className={`text-left py-0.5 truncate text-${teamColor}`}>{p.name}</td>
-          <td className="text-right py-0.5">{p.score}</td>
-          <td className="text-right py-0.5">{p.kills}</td>
-          <td className="text-right py-0.5">{p.deaths}</td>
-          <td className="text-right py-0.5">{p.plants}</td>
-          <td className="text-right py-0.5">{p.defuses}</td>
+          <td className={`text-left py-0.5 truncate text-${teamColor}`}>
+            {p.name}
+            {p.left && <span className="text-yellow-400/80"> · gestopt</span>}
+            {p.left && onRemoveLeaver && (
+              <button
+                type="button"
+                title={`${p.name} verwijderen`}
+                onClick={() => onRemoveLeaver(p.name)}
+                className="ml-1 px-1 text-gray-400 hover:text-red-400"
+              >
+                ✕
+              </button>
+            )}
+          </td>
+          {/* A leaver's zeros are placeholders, not real stats */}
+          {[p.score, p.kills, p.deaths, p.plants, p.defuses].map((value, i) => (
+            <td key={i} className="text-right py-0.5">
+              {p.left ? "–" : value}
+            </td>
+          ))}
           {ratingChanges && (
             <td className="text-right py-0.5 font-semibold">
               <RatingDelta change={ratingChanges[p.name]} />

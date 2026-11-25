@@ -1,11 +1,12 @@
 import { MatchResult, PlayerMatchStats, PlayerRating } from './types';
 import { supabase } from './supabaseClient';
-import { nextHandicapCoefficient, recomputeRatings } from './rating';
+import { recomputeRatings } from './rating';
 import { toGameMode } from './gameMode';
 import { playerToRow, rowToPlayer, type Player, type PlayerRow } from './playerRows';
 export type { Player } from './playerRows';
 
 export {
+  calculateUnevenTeamHandicap,
   calculateRatingChange,
   calculatePerformanceRatingChanges,
   marginOfVictoryFactor,
@@ -345,46 +346,6 @@ export const updateHandicapCoefficient = async (newCoefficient: number): Promise
   }
 
   localStorage.setItem(HANDICAP_COEFFICIENT_KEY, newCoefficient.toString());
-};
-
-// Calculate handicap for uneven teams
-// Returns ELO points to SUBTRACT from smaller team's rating/strength
-// This compensates for their player count disadvantage
-export const calculateUnevenTeamHandicap = (
-  smallerTeamSize: number,
-  largerTeamSize: number,
-  coefficient: number
-): number => {
-  if (smallerTeamSize === largerTeamSize) return 0;
-
-  // Handicap scales with team size ratio (must match algorithm.ts)
-  // 2v3: (1 - 2/3) = 0.33 → coefficient * 0.33
-  // 5v6: (1 - 5/6) = 0.17 → coefficient * 0.17
-  // This means 2v3 gets double the handicap of 5v6
-  const ratio = 1 - (smallerTeamSize / largerTeamSize);
-  return Math.round(coefficient * ratio);
-};
-
-// Update handicap coefficient based on match outcome, scaled by how surprising
-// it was (see nextHandicapCoefficient): a smaller team beating the odds lowers
-// it, a smaller team losing more than expected raises it.
-export const adjustHandicapCoefficient = async (
-  currentCoefficient: number,
-  smallerSize: number,
-  largerSize: number,
-  smallerActual: number,
-  smallerExpected: number
-): Promise<number> => {
-  const newCoefficient = nextHandicapCoefficient(
-    currentCoefficient,
-    smallerSize,
-    largerSize,
-    smallerActual,
-    smallerExpected
-  );
-  await updateHandicapCoefficient(newCoefficient);
-
-  return newCoefficient;
 };
 
 // Player Management functions
