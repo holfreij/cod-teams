@@ -1,7 +1,9 @@
 -- Retroactive rating recalculation, generated 2026-11-25 from live data
 -- (99 matches). Every match re-rated in date order under the current rules:
 -- performance judged against the rating's expected score share. Uneven
--- matches use the live handicap coefficient (1366), which is left as is.
+-- matches use the live handicap coefficient (1366). Afterwards the coefficient
+-- is set to 1000: the best fit to the 38 uneven matches, in which the smaller
+-- team won 58% while 1366 predicts 47%.
 -- Run in the Supabase SQL editor.
 -- Undo with revert.sql (uses the backup tables this script creates).
 BEGIN;
@@ -19,6 +21,8 @@ CREATE TABLE backup_20261125_match_history AS SELECT * FROM match_history;
 ALTER TABLE backup_20261125_match_history ENABLE ROW LEVEL SECURITY;
 CREATE TABLE backup_20261125_player_ratings AS SELECT * FROM player_ratings;
 ALTER TABLE backup_20261125_player_ratings ENABLE ROW LEVEL SECURITY;
+CREATE TABLE backup_20261125_settings AS SELECT * FROM settings;
+ALTER TABLE backup_20261125_settings ENABLE ROW LEVEL SECURITY;
 
 -- Recomputed per-match rating changes
 UPDATE match_history SET rating_changes = '{"Frank":13,"Maarten":13,"Thomas":13,"Joel":-13,"Kevin":-13,"Rolf":-13}' WHERE id = '1767983531283';
@@ -134,5 +138,8 @@ UPDATE player_ratings SET rating = 1511, wins = 18, losses = 19, draws = 0, game
 UPDATE player_ratings SET rating = 1805, wins = 50, losses = 44, draws = 0, games_played = 94, updated_at = now() WHERE name = 'Rolf';
 UPDATE player_ratings SET rating = 1004, wins = 15, losses = 26, draws = 0, games_played = 41, updated_at = now() WHERE name = 'Scott';
 UPDATE player_ratings SET rating = 1947, wins = 44, losses = 39, draws = 0, games_played = 83, updated_at = now() WHERE name = 'Thomas';
+
+-- Uneven-team handicap coefficient: 1366 -> 1000 (3v4 handicap 342 -> 250 ELO)
+UPDATE settings SET value = '1000' WHERE key = 'uneven_team_coefficient';
 
 COMMIT;

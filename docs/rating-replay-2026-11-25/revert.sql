@@ -1,4 +1,5 @@
--- Undo apply.sql: restore per-match rating changes and the leaderboard
+-- Undo apply.sql: restore per-match rating changes, the leaderboard and the
+-- handicap coefficient
 -- from the backup_20261125_* tables it created. Run in the Supabase SQL editor.
 BEGIN;
 
@@ -14,9 +15,11 @@ END $$;
 
 UPDATE match_history m SET rating_changes = b.rating_changes FROM backup_20261125_match_history b WHERE m.id = b.id;
 UPDATE player_ratings p SET rating = b.rating, wins = b.wins, losses = b.losses, draws = b.draws, games_played = b.games_played, updated_at = now() FROM backup_20261125_player_ratings b WHERE p.name = b.name;
+UPDATE settings s SET value = b.value FROM backup_20261125_settings b WHERE s.key = b.key;
 
 COMMIT;
 
 -- Once you are sure you will not revert, drop the backups:
 -- DROP TABLE backup_20261125_match_history;
 -- DROP TABLE backup_20261125_player_ratings;
+-- DROP TABLE backup_20261125_settings;
