@@ -194,6 +194,58 @@ describe("calculatePerformanceRatingChanges", () => {
     expect(changes).toEqual({ A: 13, B: -13 });
   });
 
+  it("judges performance against the share the player's rating predicts", () => {
+    // A is rated far above B, C and D, so A is expected to outscore them. A top
+    // score that merely matches that expectation earns no bonus; without this,
+    // a consistent top scorer gains points every match forever.
+    const ratings = { A: 2500, B: 1500, C: 1500, D: 1500 };
+    const rated = (name: keyof typeof ratings) => ({ name, rating: ratings[name] });
+    const mean = (2500 + 1500 * 3) / 4;
+    const weight = (r: number) => Math.pow(10, (r - mean) / 2000);
+    const totalWeight = weight(2500) + 3 * weight(1500);
+    const total = 10000;
+    const scoreOf = (r: number) => Math.round((total * weight(r)) / totalWeight);
+
+    const changes = calculatePerformanceRatingChanges({
+      team1: [rated("A"), rated("B")],
+      team2: [rated("C"), rated("D")],
+      team1Score: 10,
+      team2Score: 9,
+      team1Stats: [stats("A", scoreOf(2500)), stats("B", scoreOf(1500))],
+      team2Stats: [stats("C", scoreOf(1500)), stats("D", scoreOf(1500))],
+    });
+    // Only the team delta remains: teammates A and B move by the same amount
+    expect(changes.A).toBe(changes.B);
+    expect(changes.C).toBe(changes.D);
+  });
+
+  it("rewards a low-rated player for beating their expected share", () => {
+    const changes = calculatePerformanceRatingChanges({
+      team1: [{ name: "Low", rating: 800 }, { name: "Mid", rating: 1500 }],
+      team2: [{ name: "C", rating: 1500 }, { name: "D", rating: 1500 }],
+      team1Score: 9,
+      team2Score: 10,
+      // An even share for Low beats what an 800 rating predicts
+      team1Stats: [stats("Low", 2000), stats("Mid", 2000)],
+      team2Stats: [stats("C", 2000), stats("D", 2000)],
+    });
+    expect(changes.Low).toBeGreaterThan(changes.Mid);
+    expect(changes.Low).toBeGreaterThan(0);
+  });
+
+  it("stays zero-sum with unequal ratings", () => {
+    const changes = calculatePerformanceRatingChanges({
+      team1: [{ name: "A", rating: 2400 }, { name: "B", rating: 900 }],
+      team2: [{ name: "C", rating: 1700 }, { name: "D", rating: 1600 }],
+      team1Score: 10,
+      team2Score: 5,
+      team1Stats: [stats("A", 2600), stats("B", 1100)],
+      team2Stats: [stats("C", 1900), stats("D", 1800)],
+    });
+    const sum = Object.values(changes).reduce((a, b) => a + b, 0);
+    expect(Math.abs(sum)).toBeLessThanOrEqual(2); // per-player rounding only
+  });
+
   it("applies no performance term when all scores are zero", () => {
     const changes = calculatePerformanceRatingChanges({
       team1: [player("A")],

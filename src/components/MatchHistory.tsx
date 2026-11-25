@@ -39,7 +39,7 @@ import {
 } from "../gameMode";
 import { ScreenshotUpload } from "./ScreenshotUpload";
 import { StatsTable, RatingDelta } from "./StatsTable";
-import { TeamSelection, toggleTeamMembership } from "../teamSelection";
+import { TeamSelection, findLeavers, toggleTeamMembership, withLeavers } from "../teamSelection";
 
 interface MapInfo {
   name: string;
@@ -100,6 +100,7 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
   } | null>(null);
 
   const handleScreenshotResult = (result: ScreenshotAnalysisResult | null) => {
+    setExcludedLeavers([]);
     if (!result) {
       setScreenshotStats(null);
       return;
@@ -139,13 +140,20 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
     setDisplayCount(prev => prev + 50);
   };
 
+  // Selected players missing from the parsed scoreboard (quit before the result
+  // screen); they count for their selected team unless unticked
+  const [excludedLeavers, setExcludedLeavers] = useState<string[]>([]);
+  const scoreboardNames = screenshotStats && {
+    team1: screenshotStats.team1.map((s) => s.name),
+    team2: screenshotStats.team2.map((s) => s.name),
+  };
+  const leavers = scoreboardNames ? findLeavers(scoreboardNames, manualTeams) : [];
+
   const handleRecordMatch = async () => {
-    // Roster: the parsed screenshot teams when available, otherwise the manual selection
-    const rosterNames = screenshotStats
-      ? {
-          team1: screenshotStats.team1.map((s) => s.name),
-          team2: screenshotStats.team2.map((s) => s.name),
-        }
+    // Roster: the parsed screenshot teams plus any leavers when available,
+    // otherwise the manual selection
+    const rosterNames = scoreboardNames
+      ? withLeavers(scoreboardNames, leavers, excludedLeavers)
       : manualTeams;
 
     if (rosterNames.team1.length === 0 || rosterNames.team2.length === 0) {
@@ -298,6 +306,7 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
     setSelectedMap("");
     setGameMode(DEFAULT_GAME_MODE);
     setScreenshotStats(null);
+    setExcludedLeavers([]);
     setManualTeams({ team1: [], team2: [] });
     handleDialogOpenChange(false);
   };
@@ -339,6 +348,34 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
                   </DialogHeader>
                   <DialogBody className="flex flex-col gap-4">
                     <ScreenshotUpload onResult={handleScreenshotResult} dialogOpen={isRecordDialogOpen} />
+
+                    {leavers.length > 0 && (
+                      <div className="flex flex-col gap-1 p-3 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                        <p className="text-sm text-yellow-300">
+                          Niet op het scorebord (vroegtijdig gestopt?). Telt mee voor de teamuitslag, zonder prestatiebonus:
+                        </p>
+                        {leavers.map((l) => (
+                          <label
+                            key={l.name}
+                            className={`flex items-center gap-2 text-sm cursor-pointer select-none ${
+                              l.team === 1 ? "text-cyber-cyan" : "text-cyber-pink"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={!excludedLeavers.includes(l.name)}
+                              onChange={() =>
+                                setExcludedLeavers((prev) =>
+                                  prev.includes(l.name) ? prev.filter((n) => n !== l.name) : [...prev, l.name]
+                                )
+                              }
+                              className="accent-current"
+                            />
+                            {l.name} (Team {l.team})
+                          </label>
+                        ))}
+                      </div>
+                    )}
 
                     {!screenshotStats && (
                       <div className="grid grid-cols-2 gap-4">
@@ -537,16 +574,27 @@ export const MatchHistory = ({ currentTeams, allPlayers, onRatingsUpdate, maps, 
 
                         {hasStats && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <StatsTable
-                              players={match.team1Stats!}
-                              teamColor="cyber-cyan"
-                              ratingChanges={match.ratingChanges}
-                            />
-                            <StatsTable
-                              players={match.team2Stats!}
-                              teamColor="cyber-pink"
-                              ratingChanges={match.ratingChanges}
-                            />
+                            {([
+                              [match.team1, match.team1Stats!, "cyber-cyan"],
+                              [match.team2, match.team2Stats!, "cyber-pink"],
+                            ] as const).map(([team, stats, color]) => {
+                              // Rostered but not on the scoreboard: quit before the result screen
+                              const quit = team.filter((p) => !stats.some((s) => s.name === p.name));
+                              return (
+                                <div key={color}>
+                                  <StatsTable
+                                    players={stats}
+                                    teamColor={color}
+                                    ratingChanges={match.ratingChanges}
+                                  />
+                                  {quit.length > 0 && (
+                                    <div className="text-xs text-gray-400 mt-1">
+                                      Gestopt: {nameList(quit)}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>

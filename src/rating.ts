@@ -84,10 +84,34 @@ export const calculateRatingChange = (
   return Math.round(kFactor * (actualScore - expectedScore(teamAvgRating, opponentAvgRating)));
 };
 
+// ELO gap at which one player is expected to outscore another 10x on the
+// scoreboard. Fitted on the 319 scoreboard rows up to 2026-11-25 (log score
+// share vs rating minus lobby mean, r = 0.72).
+export const SCORE_SHARE_ELO_SCALE = 2000;
+
+// Score share each player's rating predicts: 10^((rating - lobby mean) / scale),
+// normalised so the lobby averages 1, the same scale as an actual score share.
+export const expectedScoreShares = (
+  players: RatedPlayer[]
+): { [playerName: string]: number } => {
+  if (!players.length) return {};
+  const meanRating = players.reduce((sum, p) => sum + p.rating, 0) / players.length;
+  const weights = players.map((p) =>
+    Math.pow(10, (p.rating - meanRating) / SCORE_SHARE_ELO_SCALE)
+  );
+  const meanWeight = weights.reduce((a, b) => a + b, 0) / weights.length;
+  return Object.fromEntries(players.map((p, i) => [p.name, weights[i] / meanWeight]));
+};
+
 // Performance-weighted ELO for matches with per-player screenshot stats:
-//   delta = MoV x teamDelta + kPerf x clamp(playerScore / matchMeanScore - 1, -1, +1)
-// The performance term sums to ~0 across the lobby, so it redistributes points
-// (strong losers can gain, weak winners can lose) without inflating total rating.
+//   delta = MoV x teamDelta + kPerf x clamp(scoreShare - expectedShare, -1, +1)
+// scoreShare = playerScore / lobby mean score; expectedShare comes from the
+// player's rating (expectedScoreShares). Judging against the expectation is
+// what lets ratings settle: a top scorer who is already rated as one gains
+// nothing extra for top-scoring again. Both shares average 1 over the lobby,
+// so the term sums to ~0 and redistributes points without inflating ratings.
+// Roster players without a stats row (missed by the model, or quit before the
+// scoreboard) get the plain team delta.
 export const calculatePerformanceRatingChanges = (
   input: PerformanceMatchInput
 ): { [playerName: string]: number } => {
@@ -107,17 +131,24 @@ export const calculatePerformanceRatingChanges = (
   const team1Delta = kFactor * (team1Actual - expectedScore(team1Avg, team2Avg)) * mov;
   const team2Delta = kFactor * (1 - team1Actual - expectedScore(team2Avg, team1Avg)) * mov;
 
-  const allStats = [...team1Stats, ...team2Stats];
+  // Only rows for roster players: their ratings set the expected shares
+  const roster = [...team1, ...team2];
+  const allStats = [...team1Stats, ...team2Stats].filter((s) =>
+    roster.some((p) => p.name === s.name)
+  );
   const meanScore = allStats.length
     ? allStats.reduce((sum, s) => sum + s.score, 0) / allStats.length
     : 0;
+  const expectedShares = expectedScoreShares(
+    roster.filter((p) => allStats.some((s) => s.name === p.name))
+  );
 
   const performanceTerm = (name: string): number => {
     if (meanScore <= 0) return 0;
     const row = allStats.find((s) => s.name === name);
     if (!row) return 0;
     const share = row.score / meanScore;
-    return kPerf * Math.max(-1, Math.min(1, share - 1));
+    return kPerf * Math.max(-1, Math.min(1, share - expectedShares[name]));
   };
 
   const changes: { [playerName: string]: number } = {};
